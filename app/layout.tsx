@@ -10,7 +10,7 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "UMKM Lokal - Dukung Lokal, Cinta Indonesia!",
+  title: "JelajahKita",
   description:
     "Temukan dan dukung ribuan bisnis lokal di sekitar Anda dengan direktori digital kami",
 };
