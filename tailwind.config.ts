@@ -11,6 +11,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Custom UMKM colors
+        "primary-orange": "#FF6B35",
+        "deep-teal": "#004E64",
+        "warm-yellow": "#FFA62B",
+        cream: "#FFF8E7",
+
+        // Shadcn colors
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
