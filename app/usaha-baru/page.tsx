@@ -1,12 +1,11 @@
-import AddventureForm from "@/components/venture/add-form"
+import AddventureForm from "@/components/venture/add-form";
 
 const NewVenturePage = () => {
-    return(
-        <>
-            <h1>Usaha Baru</h1>
-            <AddventureForm/>
-        </>
-    )
-}
+  return (
+    <div className="min-h-screen">
+      <AddventureForm />
+    </div>
+  );
+};
 
-export default NewVenturePage
+export default NewVenturePage;

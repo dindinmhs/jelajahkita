@@ -1,13 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Upload, X, Clock, Link as LinkIcon, Package } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Upload,
+  X,
+  Clock,
+  Link as LinkIcon,
+  Package,
+  MapPin,
+} from "lucide-react";
 import CoordinatePicker from "../common/coordinat-picker";
 import axios from "axios";
 import Image from "next/image";
 import { useUserStore } from "@/lib/store/user-store";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 interface FormData {
   // Step 1
@@ -44,7 +54,7 @@ interface FormData {
 }
 
 const AddventureForm = () => {
-    const router = useRouter();
+  const router = useRouter();
   const { user, setUser } = useUserStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -58,13 +68,55 @@ const AddventureForm = () => {
     media: [],
     thumbnail: 0,
     operational_hours: [
-      { day: "Senin", dayNumber: 1, open: "09:00", close: "17:00", status: "open" },
-      { day: "Selasa", dayNumber: 2, open: "09:00", close: "17:00", status: "open" },
-      { day: "Rabu", dayNumber: 3, open: "09:00", close: "17:00", status: "open" },
-      { day: "Kamis", dayNumber: 4, open: "09:00", close: "17:00", status: "open" },
-      { day: "Jumat", dayNumber: 5, open: "09:00", close: "17:00", status: "open" },
-      { day: "Sabtu", dayNumber: 6, open: "09:00", close: "17:00", status: "open" },
-      { day: "Minggu", dayNumber: 7, open: "09:00", close: "17:00", status: "close" },
+      {
+        day: "Senin",
+        dayNumber: 1,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Selasa",
+        dayNumber: 2,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Rabu",
+        dayNumber: 3,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Kamis",
+        dayNumber: 4,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Jumat",
+        dayNumber: 5,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Sabtu",
+        dayNumber: 6,
+        open: "09:00",
+        close: "17:00",
+        status: "open",
+      },
+      {
+        day: "Minggu",
+        dayNumber: 7,
+        open: "09:00",
+        close: "17:00",
+        status: "close",
+      },
     ],
     links: [],
     catalog: [],
@@ -83,9 +135,12 @@ const AddventureForm = () => {
           "Content-Type": "application/json",
         },
       });
-      
+
       if (response.data && response.data.display_name) {
-        setFormData((prev) => ({ ...prev, address: response.data.display_name }));
+        setFormData((prev) => ({
+          ...prev,
+          address: response.data.display_name,
+        }));
       }
     } catch (error) {
       console.error("Error fetching address:", error);
@@ -107,12 +162,21 @@ const AddventureForm = () => {
     setFormData((prev) => ({
       ...prev,
       media: prev.media.filter((_, i) => i !== index),
-      thumbnail: prev.thumbnail === index ? 0 : prev.thumbnail > index ? prev.thumbnail - 1 : prev.thumbnail,
+      thumbnail:
+        prev.thumbnail === index
+          ? 0
+          : prev.thumbnail > index
+          ? prev.thumbnail - 1
+          : prev.thumbnail,
     }));
   };
 
   // Handle operational hours
-  const updateOperationalHour = (index: number, field: string, value: string) => {
+  const updateOperationalHour = (
+    index: number,
+    field: string,
+    value: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       operational_hours: prev.operational_hours.map((hour, i) =>
@@ -160,7 +224,11 @@ const AddventureForm = () => {
     }));
   };
 
-  const updateCatalog = (index: number, field: string, value: string | number | File) => {
+  const updateCatalog = (
+    index: number,
+    field: string,
+    value: string | number | File
+  ) => {
     setFormData((prev) => ({
       ...prev,
       catalog: prev.catalog.map((item, i) =>
@@ -169,7 +237,10 @@ const AddventureForm = () => {
     }));
   };
 
-  const handleCatalogImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCatalogImageUpload = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       updateCatalog(index, "image", file);
@@ -178,7 +249,7 @@ const AddventureForm = () => {
 
   // Handle submit
   const handleSubmit = async () => {
-    console.log(formData)
+    console.log(formData);
     if (!user) {
       alert("Anda harus login terlebih dahulu!");
       return;
@@ -199,9 +270,9 @@ const AddventureForm = () => {
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("umkm-media")
-          .getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("umkm-media").getPublicUrl(fileName);
 
         mediaUrls.push(publicUrl);
       }
@@ -276,15 +347,16 @@ const AddventureForm = () => {
           // Upload image product jika ada
           if (item.image) {
             const fileName = `${Date.now()}_${item.image.name}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from("product-images")
-              .upload(fileName, item.image);
+            const { data: uploadData, error: uploadError } =
+              await supabase.storage
+                .from("product-images")
+                .upload(fileName, item.image);
 
             if (uploadError) throw uploadError;
 
-            const { data: { publicUrl } } = supabase.storage
-              .from("product-images")
-              .getPublicUrl(fileName);
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from("product-images").getPublicUrl(fileName);
 
             imageUrl = publicUrl;
           }
@@ -305,10 +377,9 @@ const AddventureForm = () => {
 
       alert("Data berhasil disimpan!");
       console.log("UMKM ID:", umkmId);
-      
+
       // Reset form atau redirect
-      router.push('/map');
-      
+      router.push("/map");
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Terjadi kesalahan saat menyimpan data!");
@@ -316,7 +387,7 @@ const AddventureForm = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
@@ -324,9 +395,11 @@ const AddventureForm = () => {
     });
 
     // Listen perubahan auth
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
 
     return () => {
       listener.subscription.unsubscribe();
@@ -339,45 +412,63 @@ const AddventureForm = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">Informasi UMKM</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Informasi UMKM
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Lengkapi data dasar usaha Anda
+                </p>
+              </div>
+            </div>
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama UMKM *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nama UMKM <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
                 placeholder="Contoh: Warung Makan Bu Ani"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deskripsi *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Deskripsi <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
                 placeholder="Ceritakan tentang usaha Anda..."
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Kategori <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, category: e.target.value }))
+                }
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
               >
                 <option value="">Pilih Kategori</option>
                 {categories.map((cat) => (
@@ -390,33 +481,40 @@ const AddventureForm = () => {
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lokasi *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Lokasi <span className="text-red-500">*</span>
               </label>
               <CoordinatePicker
                 value={[formData.lat, formData.lon]}
                 onChange={handleCoordinateChange}
               />
               {formData.address && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Alamat:</p>
-                  <p className="text-sm font-medium">{formData.address}</p>
+                <div className="mt-3 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-200">
+                  <p className="text-sm text-gray-600 mb-1">📍 Alamat:</p>
+                  <p className="text-sm font-medium text-gray-800">
+                    {formData.address}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Media Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Media (Maksimal 3) *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Media (Maksimal 3) <span className="text-red-500">*</span>
               </label>
               <div className="space-y-4">
                 {formData.media.length < 3 && (
-                  <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                  <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-orange-50 transition-all">
                     <div className="text-center">
-                      <Upload className="mx-auto mb-2 text-gray-400" size={32} />
-                      <p className="text-sm text-gray-600">
+                      <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-full flex items-center justify-center">
+                        <Upload className="text-white" size={28} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700">
                         Klik untuk upload gambar
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PNG, JPG hingga 5MB
                       </p>
                     </div>
                     <input
@@ -438,25 +536,29 @@ const AddventureForm = () => {
                         height={200}
                         src={URL.createObjectURL(file)}
                         alt={`Preview ${index}`}
-                        className="w-full h-32 object-cover rounded-lg"
+                        className="w-full h-40 object-cover rounded-xl border-2 border-gray-200"
                       />
                       <button
                         type="button"
                         onClick={() => removeMedia(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110"
                       >
                         <X size={16} />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, thumbnail: index }))}
-                        className={`absolute bottom-2 left-2 px-2 py-1 text-xs rounded ${
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, thumbnail: index }))
+                        }
+                        className={`absolute bottom-2 left-2 px-3 py-1 text-xs font-medium rounded-full transition-all ${
                           formData.thumbnail === index
-                            ? "bg-orange-500 text-white"
-                            : "bg-white text-gray-700"
+                            ? "bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] text-white shadow-lg"
+                            : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B35]"
                         }`}
                       >
-                        {formData.thumbnail === index ? "Thumbnail" : "Set Thumbnail"}
+                        {formData.thumbnail === index
+                          ? "✓ Thumbnail"
+                          : "Set Thumbnail"}
                       </button>
                     </div>
                   ))}
@@ -469,20 +571,36 @@ const AddventureForm = () => {
       case 2:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Clock size={28} />
-              Jam Operasional
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
+                <Clock className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Jam Operasional
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Atur jadwal buka usaha Anda
+                </p>
+              </div>
+            </div>
 
             <div className="space-y-3">
               {formData.operational_hours.map((hour, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                  <span className="w-24 font-medium">{hour.day}</span>
-                  
+                <div
+                  key={index}
+                  className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#FF6B35] transition-all"
+                >
+                  <span className="w-24 font-semibold text-gray-700">
+                    {hour.day}
+                  </span>
+
                   <select
                     value={hour.status}
-                    onChange={(e) => updateOperationalHour(index, "status", e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    onChange={(e) =>
+                      updateOperationalHour(index, "status", e.target.value)
+                    }
+                    className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                   >
                     <option value="open">Buka</option>
                     <option value="close">Tutup</option>
@@ -493,15 +611,19 @@ const AddventureForm = () => {
                       <input
                         type="time"
                         value={hour.open}
-                        onChange={(e) => updateOperationalHour(index, "open", e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        onChange={(e) =>
+                          updateOperationalHour(index, "open", e.target.value)
+                        }
+                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                       />
-                      <span>-</span>
+                      <span className="text-gray-400 font-bold">-</span>
                       <input
                         type="time"
                         value={hour.close}
-                        onChange={(e) => updateOperationalHour(index, "close", e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        onChange={(e) =>
+                          updateOperationalHour(index, "close", e.target.value)
+                        }
+                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                       />
                     </>
                   )}
@@ -514,32 +636,46 @@ const AddventureForm = () => {
       case 3:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <LinkIcon size={28} />
-              Link Sosial Media
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
+                <LinkIcon className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Link Sosial Media
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Tambahkan link media sosial usaha Anda (opsional)
+                </p>
+              </div>
+            </div>
 
             <div className="space-y-4">
               {formData.links.map((link, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                <div
+                  key={index}
+                  className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#FF6B35] transition-all"
+                >
                   <input
                     type="text"
                     value={link.platform}
-                    onChange={(e) => updateLink(index, "platform", e.target.value)}
+                    onChange={(e) =>
+                      updateLink(index, "platform", e.target.value)
+                    }
                     placeholder="Platform (Instagram, Facebook, dll)"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                   />
                   <input
                     type="url"
                     value={link.url}
                     onChange={(e) => updateLink(index, "url", e.target.value)}
                     placeholder="https://..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => removeLink(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
                   >
                     <X size={20} />
                   </button>
@@ -549,9 +685,9 @@ const AddventureForm = () => {
               <button
                 type="button"
                 onClick={addLink}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-orange-500 hover:text-orange-500 transition-colors"
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#FF6B35] hover:text-[#FF6B35] hover:bg-orange-50 transition-all font-medium"
               >
-                + Tambah Link
+                + Tambah Link Sosial Media
               </button>
             </div>
           </div>
@@ -560,20 +696,34 @@ const AddventureForm = () => {
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Package size={28} />
-              Katalog Produk
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
+                <Package className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Katalog Produk
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Tambahkan produk atau layanan yang Anda tawarkan (opsional)
+                </p>
+              </div>
+            </div>
 
             <div className="space-y-4">
               {formData.catalog.map((item, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
+                <div
+                  key={index}
+                  className="p-6 border-2 border-gray-200 rounded-xl space-y-4 hover:border-[#FF6B35] transition-all"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Produk #{index + 1}</span>
+                    <span className="font-semibold text-lg text-gray-700">
+                      Produk #{index + 1}
+                    </span>
                     <button
                       type="button"
                       onClick={() => removeCatalog(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
                     >
                       <X size={20} />
                     </button>
@@ -582,46 +732,60 @@ const AddventureForm = () => {
                   <input
                     type="text"
                     value={item.name}
-                    onChange={(e) => updateCatalog(index, "name", e.target.value)}
+                    onChange={(e) =>
+                      updateCatalog(index, "name", e.target.value)
+                    }
                     placeholder="Nama Produk"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                   />
 
                   <input
                     type="number"
                     value={item.price}
-                    onChange={(e) => updateCatalog(index, "price", Number(e.target.value))}
-                    placeholder="Harga"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    onChange={(e) =>
+                      updateCatalog(index, "price", Number(e.target.value))
+                    }
+                    placeholder="Harga (Rp)"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
                   />
 
                   {/* Image Upload for Product */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Gambar Produk
                     </label>
                     {item.image ? (
                       <div className="relative group">
                         <Image
-                          width={200}
-                          height={200}
+                          width={400}
+                          height={300}
                           src={URL.createObjectURL(item.image)}
                           alt={`Product ${index}`}
-                          className="w-full h-48 object-cover rounded-lg"
+                          className="w-full h-56 object-cover rounded-xl border-2 border-gray-200"
                         />
                         <button
                           type="button"
-                          onClick={() => updateCatalog(index, "image", null as unknown as File)}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() =>
+                            updateCatalog(
+                              index,
+                              "image",
+                              null as unknown as File
+                            )
+                          }
+                          className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110"
                         >
-                          <X size={16} />
+                          <X size={18} />
                         </button>
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                      <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-orange-50 transition-all">
                         <div className="text-center">
-                          <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-                          <p className="text-sm text-gray-600">Upload gambar produk</p>
+                          <div className="w-14 h-14 mx-auto mb-2 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                            <Upload className="text-white" size={24} />
+                          </div>
+                          <p className="text-sm font-medium text-gray-600">
+                            Upload gambar produk
+                          </p>
                         </div>
                         <input
                           type="file"
@@ -638,7 +802,7 @@ const AddventureForm = () => {
               <button
                 type="button"
                 onClick={addCatalog}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-orange-500 hover:text-orange-500 transition-colors"
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#FF6B35] hover:text-[#FF6B35] hover:bg-orange-50 transition-all font-medium"
               >
                 + Tambah Produk
               </button>
@@ -652,75 +816,118 @@ const AddventureForm = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className="flex items-center flex-1">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  currentStep >= step
-                    ? "bg-orange-500 text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
-              >
-                {step}
-              </div>
-              {step < 4 && (
-                <div
-                  className={`flex-1 h-1 mx-2 ${
-                    currentStep > step ? "bg-orange-500" : "bg-gray-200"
-                  }`}
-                />
-              )}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
+      <div className="max-w-5xl mx-auto p-6 py-12">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] bg-clip-text text-transparent mb-2">
+            Daftarkan UMKM Anda
+          </h1>
+          <p className="text-gray-600">
+            Lengkapi informasi usaha Anda dalam 4 langkah mudah
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-12">
+          <div className="relative">
+            {/* Background Line */}
+            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" />
+
+            {/* Animated Progress Line */}
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="absolute top-5 left-0 h-1 bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] rounded-full z-10"
+            />
+
+            {/* Steps */}
+            <div className="relative flex justify-between">
+              {[
+                { num: 1, label: "Informasi UMKM", icon: MapPin },
+                { num: 2, label: "Jam Operasional", icon: Clock },
+                { num: 3, label: "Link Sosial", icon: LinkIcon },
+                { num: 4, label: "Katalog Produk", icon: Package },
+              ].map((step) => {
+                const Icon = step.icon;
+                const isActive = currentStep >= step.num;
+                const isCurrent = currentStep === step.num;
+
+                return (
+                  <div key={step.num} className="flex flex-col items-center">
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        scale: isCurrent ? 1.1 : 1,
+                        backgroundColor: isActive ? "#FF6B35" : "#E5E7EB",
+                      }}
+                      transition={{ duration: 0.3 }}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-lg z-20 ${
+                        isActive ? "text-white" : "text-gray-400"
+                      }`}
+                    >
+                      <Icon size={20} />
+                    </motion.div>
+                    <motion.span
+                      initial={false}
+                      animate={{
+                        color: isActive ? "#FF6B35" : "#9CA3AF",
+                        fontWeight: isCurrent ? 600 : 400,
+                      }}
+                      className="text-sm mt-2 text-center max-w-[80px]"
+                    >
+                      {step.label}
+                    </motion.span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
         </div>
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>Informasi</span>
-          <span>Jam Operasional</span>
-          <span>Link</span>
-          <span>Katalog</span>
-        </div>
-      </div>
 
-      {/* Form Content */}
-      <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-        {renderStepContent()}
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-between">
-        <button
-          type="button"
-          onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-          disabled={currentStep === 1}
-          className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Form Content */}
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100"
         >
-          <ChevronLeft size={20} />
-          Kembali
-        </button>
+          {renderStepContent()}
+        </motion.div>
 
-        {currentStep < 4 ? (
+        {/* Navigation Buttons */}
+        <div className="flex justify-between">
           <button
             type="button"
-            onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
-            className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+            disabled={currentStep === 1}
+            className="flex items-center gap-2 px-8 py-3 border-2 border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
           >
-            Selanjutnya
-            <ChevronRight size={20} />
+            Kembali
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Menyimpan..." : "Submit"}
-          </button>
-        )}
+
+          {currentStep < 4 ? (
+            <button
+              type="button"
+              onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
+              className="flex items-center gap-2 px-8 py-3 bg-[#FF6B35] font-semibold text-white rounded-full hover:shadow-lg transition-all"
+            >
+              Selanjutnya
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+            >
+              {loading ? "Menyimpan..." : "Submit"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
