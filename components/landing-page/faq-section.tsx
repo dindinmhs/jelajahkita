@@ -223,11 +223,11 @@ export function FAQSection() {
           >
             <div className="sticky top-32">
               <Image
-                src="/question.png"
+                src="/question3.png"
                 alt="FAQ Illustration"
-                width={200}
-                height={200}
-                className="w-full h-auto rounded-2xl max-w-md mx-auto"
+                width={600}
+                height={600}
+                className="w-full h-auto rounded-2xl"
                 priority
               />
             </div>

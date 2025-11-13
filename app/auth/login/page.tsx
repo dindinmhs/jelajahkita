@@ -117,9 +117,18 @@ export default function Page() {
           {/* Left Side - Hero Text & Stats */}
           <div className="hidden lg:block flex-1 text-white text-left">
             <h1 className="text-6xl mb-8 leading-tight font-black">
-              TEMUKAN UMKM
+              <span className="bg-gradient-to-r from-[#ff4a08] via-[#FFA62B] to-[#ffd8a2] bg-clip-text text-transparent">
+                TEMUKAN
+              </span>{" "}
+              UMKM
               <br />
-              LOKAL TERBAIK!
+              <span className="bg-gradient-to-r from-[#ff4a08] via-[#FFA62B] to-[#ffd8a2] bg-clip-text text-transparent">
+                LOKAL
+              </span>{" "}
+              <span className="bg-[#ffd8a2] bg-clip-text text-transparent">
+                TE
+              </span>
+              RBAIK!
             </h1>
 
             {/* Statistics */}

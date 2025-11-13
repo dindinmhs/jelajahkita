@@ -103,9 +103,15 @@ export default function Page() {
           {/* Left Side - Hero Text & Stats */}
           <div className="hidden lg:block flex-1 text-white text-left">
             <h1 className="text-6xl mb-8 leading-tight font-black">
-              BERGABUNG
+              <span className="bg-gradient-to-r from-[#ff4a08] via-[#FFA62B] to-[#fbe5c6] bg-clip-text text-transparent">
+                BERGA
+              </span>
+              BUNG
               <br />
-              DENGAN KAMI!
+              <span className="bg-gradient-to-r from-[#ff4a08] via-[#FFA62B] to-[#fbe5c6] bg-clip-text text-transparent">
+                DENGAN
+              </span>{" "}
+              KAMI!
             </h1>
 
             {/* Statistics */}
