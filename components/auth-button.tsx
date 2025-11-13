@@ -1,29 +1,49 @@
+"use client";
+
 import Link from "next/link";
-import { Button } from "./ui/button";
-import { createClient } from "@/lib/supabase/server";
-import { LogoutButton } from "./logout-button";
+import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import UserProfile from "./auth/user-profile";
+import { useUserStore } from "@/lib/store/user-store";
 
-export async function AuthButton() {
-  const supabase = await createClient();
+export function AuthButton() {
+  const { user, setUser } = useUserStore();
 
-  // You can also use getUser() which will be slower.
-  const { data } = await supabase.auth.getClaims();
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+    });
 
-  const user = data?.claims;
+    // Listen perubahan auth
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [setUser]);
 
   return user ? (
     <div className="flex items-center gap-4">
-      Hey, {user.email}!
-      <LogoutButton />
+      <UserProfile
+        displayName={user.user_metadata.email}
+        email={user.email}
+      />
     </div>
   ) : (
-    <div className="flex gap-2">
-      <Button asChild size="sm" variant={"outline"}>
-        <Link href="/auth/login">Sign in</Link>
-      </Button>
-      <Button asChild size="sm" variant={"default"}>
-        <Link href="/auth/sign-up">Sign up</Link>
-      </Button>
+    <div className="flex items-center gap-4">
+      <Link href="/auth/login">
+        <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-5 bg-white text-[#FF6B35] border-2 border-[#FF6B35] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#FF6B35] hover:text-white transition-colors">
+          <span className="truncate">Masuk</span>
+        </button>
+      </Link>
+      <Link href="/auth/sign-up">
+        <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-5 bg-[#FF6B35] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#ff8c42] transition-colors shadow-md">
+          <span className="truncate">Daftar</span>
+        </button>
+      </Link>
     </div>
   );
 }
