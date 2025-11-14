@@ -48,10 +48,10 @@ export default function Page() {
 
         if (sessionData.session) {
           clearTimeout(loginTimeout);
-          router.replace("/protected");
+          router.replace("/map");
 
           setTimeout(() => {
-            window.location.href = "/protected";
+            window.location.href = "/map";
           }, 100);
         } else {
           throw new Error("Session tidak dapat diverifikasi");

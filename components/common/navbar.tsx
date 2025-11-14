@@ -1,10 +1,10 @@
 "use client";
-import { Search, Menu, Plus } from "lucide-react";
-import Dropdown from "./dropdown";
+import { Search, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthButton } from "../auth-button";
 import Image from "next/image";
 import { useMapStore } from "@/lib/store/useMapStore";
+import UmkmDropdown from "@/components/maps/umkm-dropdown";
 
 const NavbarMap = () => {
   const router = useRouter();
@@ -18,15 +18,6 @@ const NavbarMap = () => {
     "Jasa",
     "Pertanian",
     "Teknologi",
-  ];
-
-  const dropdownItems = [
-    {
-      id: "add",
-      label: "Usaha Baru",
-      icon: <Plus size={20} />,
-      onClick: () => router.push("usaha-baru"),
-    },
   ];
 
   return (
@@ -92,16 +83,7 @@ const NavbarMap = () => {
 
             {/* Right Section - Add Business Button & Avatar */}
             <div className="flex items-center gap-2 rounded-full px-3 py-2">
-              <Dropdown
-                trigger={
-                  <button className="hidden sm:flex items-center gap-2 bg-[#FF6B35] hover:bg-[#ff8c42] text-white px-4 py-2 rounded-full transition-colors">
-                    <Plus size={16} />
-                    <span className="font-medium text-sm">Tambah UMKM</span>
-                  </button>
-                }
-                items={dropdownItems}
-                position="bottom-right"
-              />
+              <UmkmDropdown />
               <div className="">
                 <AuthButton />
               </div>

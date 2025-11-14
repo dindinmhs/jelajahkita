@@ -36,14 +36,14 @@ export default function RootLayout({
         />
       </head>
       <body className={`${plusJakartaSans.className} antialiased`}>
-        <ThemeProvider
+        {/* <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-        >
+        > */}
           <LenisProvider>{children}</LenisProvider>
-        </ThemeProvider>
+        {/* </ThemeProvider> */}
       </body>
     </html>
   );
