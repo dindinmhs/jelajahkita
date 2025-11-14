@@ -30,7 +30,7 @@ export default function Page() {
       setIsLoading(false);
       setLoadingMessage("Masuk...");
     }, 10000);
-
+  
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
