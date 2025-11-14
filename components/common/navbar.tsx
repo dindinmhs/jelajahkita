@@ -4,11 +4,11 @@ import Dropdown from "./dropdown";
 import { useRouter } from "next/navigation";
 import { AuthButton } from "../auth-button";
 import Image from "next/image";
-import { useState } from "react";
+import { useMapStore } from "@/lib/store/useMapStore";
 
 const NavbarMap = () => {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
+  const { selectedCategory, setSelectedCategory, toggleSidebar } = useMapStore();
 
   const categories = [
     "Semua",
@@ -37,7 +37,10 @@ const NavbarMap = () => {
           <div className="flex items-center justify-between gap-3">
             {/* Left Section - Menu & Logo in rounded container */}
             <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md shadow-lg rounded-full px-5 py-2">
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <button 
+                onClick={toggleSidebar}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <Menu size={20} className="text-gray-700" />
               </button>
               <div
@@ -99,7 +102,7 @@ const NavbarMap = () => {
                 items={dropdownItems}
                 position="bottom-right"
               />
-              <div className="w-9 h-9 rounded-full bg-gray-300 overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#FF6B35] transition-all">
+              <div className="">
                 <AuthButton />
               </div>
             </div>

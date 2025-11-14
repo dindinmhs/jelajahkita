@@ -32,7 +32,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ displayName, imageUrl }) => {
       label: "Logout",
       icon: <LogOut size={20} />,
       onClick: () => logout(),
-    },
+    }
   ];
 
   const logout = async () => {

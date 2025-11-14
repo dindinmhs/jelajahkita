@@ -4,15 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
-  Map,
+  Map as MapIcon,
   Layers,
   Globe,
   Plus,
   Minus,
   Navigation,
   Sparkles,
+  MapPin,
 } from "lucide-react";
+import { renderToString } from "react-dom/server";
 import Dropdown from "@/components/common/dropdown";
+import { createClient } from "@/lib/supabase/client";
+import { useMapStore } from "@/lib/store/useMapStore";
+import { getCategoryIcon, getCategoryColor } from "@/lib/utils/category-icons";
 
 interface MapViewProps {
   initialCenter?: [number, number];
@@ -21,19 +26,36 @@ interface MapViewProps {
 
 type MapMode = "default" | "3d" | "satellite";
 
+interface UMKM {
+  id: string;
+  name: string;
+  category: string;
+  lon: number;
+  lat: number;
+}
+
 export default function MapView({
-  initialCenter = [106.8456, -6.2088], // Jakarta coordinates
+  initialCenter = [106.8456, -6.2088],
   initialZoom = 12,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const userMarker = useRef<maplibregl.Marker | null>(null);
+  const umkmMarkers = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const markersCreated = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mapMode, setMapMode] = useState<MapMode>("default");
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(
-    null
-  );
+  const [umkmList, setUmkmList] = useState<UMKM[]>([]);
+  const [locationRequested, setLocationRequested] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
-  // Map style configurations
+  const userLocation = useMapStore((state) => state.userLocation);
+  const setUserLocation = useMapStore((state) => state.setUserLocation);
+  const selectedUmkm = useMapStore((state) => state.selectedUmkm);
+  const setSelectedUmkm = useMapStore((state) => state.setSelectedUmkm);
+
   const mapStyles = {
     default: "https://tiles.openfreemap.org/styles/bright",
     "3d": "https://tiles.openfreemap.org/styles/liberty",
@@ -59,36 +81,286 @@ export default function MapView({
   };
 
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    setIsMounted(true);
+  }, []);
 
-    // Initialize map
+  const requestLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+
+    setLocationRequested(true);
+    setShowLocationPrompt(false);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newLocation: [number, number] = [longitude, latitude];
+        setUserLocation(newLocation);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setLocationRequested(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (!isMounted || typeof window === "undefined") return;
+
+    const checkPermission = async () => {
+      try {
+        if (navigator.permissions) {
+          const result = await navigator.permissions.query({
+            name: "geolocation",
+          });
+
+          if (result.state === "granted") {
+            requestLocation();
+          } else if (result.state === "prompt") {
+            setTimeout(() => {
+              setShowLocationPrompt(true);
+            }, 1000);
+          }
+        } else {
+          setTimeout(() => {
+            setShowLocationPrompt(true);
+          }, 1000);
+        }
+      } catch (error) {
+        setTimeout(() => {
+          setShowLocationPrompt(true);
+        }, 1000);
+      }
+    };
+
+    checkPermission();
+  }, [isMounted]);
+
+  const handleDismissLocationPrompt = () => {
+    setShowLocationPrompt(false);
+  };
+
+  // Fetch UMKM only once
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const fetchUMKM = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("umkm")
+        .select("id, name, category, lon, lat");
+
+      if (error) {
+        console.error("Error fetching UMKM:", error);
+        return;
+      }
+
+      if (data) {
+        setUmkmList(data);
+      }
+    };
+
+    fetchUMKM();
+  }, [isMounted]);
+
+  // Initialize map once
+  useEffect(() => {
+    if (!isMounted || !mapContainer.current || map.current) return;
+
+    const center = userLocation ? userLocation : initialCenter;
+
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: mapStyles.default,
-      center: initialCenter,
-      zoom: initialZoom,
+      center: center as [number, number],
+      zoom: userLocation ? 15 : initialZoom,
     });
 
-    // Handle loading state
     map.current.on("load", () => {
       setIsLoading(false);
+      setMapLoaded(true);
     });
 
-    // Cleanup
     return () => {
       if (map.current) {
+        umkmMarkers.current.forEach((marker) => marker.remove());
+        umkmMarkers.current.clear();
+        if (userMarker.current) {
+          userMarker.current.remove();
+        }
         map.current.remove();
         map.current = null;
       }
     };
-  }, [initialCenter, initialZoom]);
+  }, [isMounted]);
+
+  // Add user location marker
+  useEffect(() => {
+    if (!map.current || !userLocation || !mapLoaded) return;
+
+    if (userMarker.current) {
+      userMarker.current.remove();
+    }
+
+    const el = document.createElement("div");
+    el.className = "user-location-marker";
+    el.style.cssText = `
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      border: 3px solid white;
+      box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+      animation: pulse 2s infinite;
+    `;
+
+    if (!document.getElementById("pulse-animation")) {
+      const style = document.createElement("style");
+      style.id = "pulse-animation";
+      style.textContent = `
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+          70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    userMarker.current = new maplibregl.Marker({ element: el })
+      .setLngLat(userLocation)
+      .addTo(map.current);
+
+    map.current.flyTo({
+      center: userLocation,
+      zoom: 15,
+      duration: 2000,
+    });
+  }, [userLocation, mapLoaded]);
+
+  // Create UMKM markers only once when data is loaded
+  useEffect(() => {
+    if (!map.current || !mapLoaded || umkmList.length === 0 || markersCreated.current) return;
+
+    console.log("Creating UMKM markers...");
+    
+    umkmList.forEach((umkm) => {
+      const el = document.createElement("div");
+      el.className = "umkm-marker";
+      const color = getCategoryColor(umkm.category);
+
+      el.innerHTML = `
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
+          <div style="
+            background-color: ${color};
+            width: 40px;
+            height: 40px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            border: 3px solid white;
+          ">
+            <div style="transform: rotate(45deg); color: white; display: flex; align-items: center; justify-content: center;">
+              ${renderToString(getCategoryIcon(umkm.category, 20))}
+            </div>
+          </div>
+          <div style="
+            background-color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1f2937;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            margin-top: 4px;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          ">
+            ${umkm.name}
+          </div>
+        </div>
+      `;
+
+      el.addEventListener("click", () => {
+        setSelectedUmkm(umkm);
+      });
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([umkm.lon, umkm.lat])
+        .addTo(map.current!);
+
+      umkmMarkers.current.set(umkm.id, marker);
+    });
+
+    markersCreated.current = true;
+    console.log(`Created ${umkmMarkers.current.size} markers`);
+  }, [mapLoaded, umkmList]);
+
+  // Focus on selected UMKM - WITHOUT removing markers
+  useEffect(() => {
+    if (!map.current || !selectedUmkm || !mapLoaded) return;
+
+    const umkm = umkmList.find((u) => u.id === selectedUmkm.id);
+    if (umkm) {
+      console.log("Flying to:", umkm.name);
+      map.current.flyTo({
+        center: [umkm.lon, umkm.lat],
+        zoom: 16,
+        duration: 1500,
+        essential: true,
+      });
+    }
+  }, [selectedUmkm]);
 
   // Handle map mode change
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapLoaded) return;
 
-    const style =
-      mapMode === "satellite" ? mapStyles.satellite : mapStyles[mapMode];
+    const style = mapMode === "satellite" ? mapStyles.satellite : mapStyles[mapMode];
+
+    console.log("Changing map style to:", mapMode);
+
+    map.current.once("styledata", () => {
+      console.log("Style loaded, re-adding markers...");
+      
+      setTimeout(() => {
+        // Re-add user marker
+        if (userMarker.current && userLocation) {
+          const el = userMarker.current.getElement();
+          userMarker.current.remove();
+          userMarker.current = new maplibregl.Marker({ element: el })
+            .setLngLat(userLocation)
+            .addTo(map.current!);
+        }
+
+        // Re-add UMKM markers
+        const existingMarkers = Array.from(umkmMarkers.current.entries());
+        umkmMarkers.current.clear();
+
+        existingMarkers.forEach(([id, marker]) => {
+          const umkm = umkmList.find(u => u.id === id);
+          if (umkm) {
+            const el = marker.getElement();
+            marker.remove();
+            const newMarker = new maplibregl.Marker({ element: el })
+              .setLngLat([umkm.lon, umkm.lat])
+              .addTo(map.current!);
+            umkmMarkers.current.set(id, newMarker);
+          }
+        });
+
+        console.log("Markers re-added:", umkmMarkers.current.size);
+      }, 100);
+    });
 
     map.current.setStyle(style as any);
   }, [mapMode]);
@@ -98,59 +370,30 @@ export default function MapView({
   };
 
   const handleZoomIn = () => {
-    if (map.current) {
-      map.current.zoomIn();
-    }
+    map.current?.zoomIn();
   };
 
   const handleZoomOut = () => {
-    if (map.current) {
-      map.current.zoomOut();
-    }
+    map.current?.zoomOut();
   };
 
   const handleGoToUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation: [number, number] = [longitude, latitude];
-          setUserLocation(newLocation);
-
-          if (map.current) {
-            map.current.flyTo({
-              center: newLocation,
-              zoom: 15,
-              duration: 2000,
-            });
-
-            // Add marker for user location
-            new maplibregl.Marker({ color: "#FF6B35" })
-              .setLngLat(newLocation)
-              .addTo(map.current);
-          }
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          alert("Tidak dapat mengakses lokasi Anda. Pastikan GPS aktif.");
-        }
-      );
-    } else {
-      alert("Browser Anda tidak mendukung Geolocation.");
+    if (userLocation && map.current) {
+      map.current.flyTo({
+        center: userLocation,
+        zoom: 15,
+        duration: 2000,
+      });
+    } else if (!locationRequested) {
+      requestLocation();
     }
   };
 
-  const handleOpenAIAssistant = () => {
-    // TODO: Implement AI Assistant
-    console.log("AI Assistant clicked");
-  };
-
-  // Map mode dropdown items
   const modeDropdownItems = [
     {
       id: "default",
       label: "Default",
-      icon: <Map size={18} />,
+      icon: <MapIcon size={18} />,
       onClick: () => handleModeChange("default"),
     },
     {
@@ -167,9 +410,19 @@ export default function MapView({
     },
   ];
 
+  if (!isMounted) {
+    return (
+      <div className="relative w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Memuat peta...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-full">
-      {/* Loading State */}
       {isLoading && (
         <div className="absolute inset-0 bg-white z-50 flex items-center justify-center">
           <div className="text-center">
@@ -179,14 +432,44 @@ export default function MapView({
         </div>
       )}
 
-      {/* Map Controls - Right Side */}
+      {showLocationPrompt && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-2xl p-4 max-w-sm border border-gray-200">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <MapPin className="text-blue-600" size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">
+                Aktifkan Lokasi
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Izinkan akses lokasi untuk melihat UMKM terdekat.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={requestLocation}
+                  className="flex-1 bg-[#FF6B35] hover:bg-[#ff5722] text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Izinkan
+                </button>
+                <button
+                  onClick={handleDismissLocationPrompt}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Nanti Saja
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute bottom-10 right-6 z-40 flex flex-col gap-2">
-        {/* Map Mode Selector with Dropdown */}
         <Dropdown
           trigger={
             <button className="w-full bg-white hover:bg-gray-50 shadow-lg rounded-full p-3 flex items-center justify-center transition-all border border-gray-200">
               {mapMode === "default" && (
-                <Map size={20} className="text-gray-700" />
+                <MapIcon size={20} className="text-gray-700" />
               )}
               {mapMode === "3d" && (
                 <Layers size={20} className="text-gray-700" />
@@ -200,25 +483,27 @@ export default function MapView({
           position="left"
         />
 
-        {/* AI Assistant Button */}
         <button
-          onClick={handleOpenAIAssistant}
+          onClick={() => console.log("AI Assistant")}
           className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all"
           title="AI Assistant"
         >
           <Sparkles size={20} className="text-gray-700" />
         </button>
 
-        {/* Go to User Location Button */}
         <button
           onClick={handleGoToUserLocation}
-          className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
+          className={`bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200 ${
+            !userLocation && !locationRequested ? "animate-pulse" : ""
+          }`}
           title="Lokasi Saya"
         >
-          <Navigation size={20} className="text-gray-700" />
+          <Navigation
+            size={20}
+            className={userLocation ? "text-blue-600" : "text-gray-700"}
+          />
         </button>
 
-        {/* Zoom In Button */}
         <button
           onClick={handleZoomIn}
           className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
@@ -227,7 +512,6 @@ export default function MapView({
           <Plus size={20} className="text-gray-700" />
         </button>
 
-        {/* Zoom Out Button */}
         <button
           onClick={handleZoomOut}
           className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
@@ -237,7 +521,6 @@ export default function MapView({
         </button>
       </div>
 
-      {/* Map Container */}
       <div ref={mapContainer} className="w-full h-full" />
     </div>
   );

@@ -26,12 +26,10 @@ export function AuthButton() {
   }, [setUser]);
 
   return user ? (
-    <div className="flex items-center gap-4">
       <UserProfile
-        displayName={user.user_metadata.email}
+        displayName={user.user_metadata.full_name}
         email={user.email}
       />
-    </div>
   ) : (
     <div className="flex items-center gap-4">
       <Link href="/auth/login">
