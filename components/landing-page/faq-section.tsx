@@ -223,7 +223,7 @@ export function FAQSection() {
           >
             <div className="sticky top-32">
               <Image
-                src="/question3.png"
+                src="/question4.png"
                 alt="FAQ Illustration"
                 width={600}
                 height={600}
