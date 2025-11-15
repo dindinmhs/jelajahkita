@@ -23,6 +23,7 @@ import { getCategoryIcon, getCategoryColor } from "@/lib/utils/category-icons";
 import { useNavigationStore } from "@/lib/store/useNavigation";
 import { useChatStore } from "@/lib/store/useChatStore";
 import ChatPopup from "./chat-popup";
+import AIChatbot from "./ai-chatbot";
 
 interface MapViewProps {
   initialCenter?: [number, number];
@@ -803,13 +804,7 @@ export default function MapView({
             position="left"
           />
 
-          <button
-            onClick={() => console.log("AI Assistant")}
-            className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all"
-            title="AI Assistant"
-          >
-            <Sparkles size={20} className="text-gray-700" />
-          </button>
+          <AIChatbot map={map} umkmMarkers={umkmMarkers} />
 
           <button
             onClick={handleGoToUserLocation}
