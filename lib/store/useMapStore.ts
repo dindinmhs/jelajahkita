@@ -27,12 +27,15 @@ interface MapStore {
   selectedUmkm: UMKM | null;
   setSelectedUmkm: (umkm: UMKM | null) => void;
 
-  // UBAH: format [lon, lat] untuk konsisten dengan MapLibre
   userLocation: [number, number] | null;
   setUserLocation: (location: [number, number] | null) => void;
 
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+
+  // NEW: Search query state
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export const useMapStore = create<MapStore>((set) => ({
@@ -59,4 +62,7 @@ export const useMapStore = create<MapStore>((set) => ({
 
   selectedCategory: 'Semua',
   setSelectedCategory: (category) => set({ selectedCategory: category }),
+
+  searchQuery: '',
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }));

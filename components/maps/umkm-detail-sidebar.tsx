@@ -24,40 +24,44 @@ import Image from "next/image";
 import { getCategoryIcon } from "@/lib/utils/category-icons";
 import { createClient } from "@/lib/supabase/client";
 import ReviewModal from "./review-modal";
+import { useNavigationStore } from "@/lib/store/useNavigation";
+import { useChatStore } from "@/lib/store/useChatStore";
 
 interface UmkmDetail {
-  id: string; // uuid
+  id: string;
   name: string;
   description: string;
   address: string;
   no_telp: string;
   category: string;
   thumbnail: string;
+  lat: number;
+  lon: number;
   media: Array<{
-    id: string; // uuid
+    id: string;
     image_url: string;
     is_thumbnail: boolean;
   }>;
   catalog: Array<{
-    id: string; // uuid
+    id: string;
     name: string;
     price: number;
     image_url: string;
   }>;
   operational_hours: Array<{
-    id: string; // uuid
+    id: string;
     day: number;
     open: string;
     close: string;
     status: string;
   }>;
   links: Array<{
-    id: string; // uuid
+    id: string;
     platform: string;
     url: string;
   }>;
   reviews: Array<{
-    id: string; // uuid - UPDATED: dari number ke string (uuid)
+    id: string;
     rating: number;
     comment: string;
     user_id: string;
@@ -73,8 +77,11 @@ export default function UmkmDetailSidebar() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  const { selectedUmkm, setSelectedUmkm, setSidebarView } = useMapStore();
+  const { selectedUmkm, setSelectedUmkm, setSidebarView, userLocation } =
+    useMapStore();
   const { openReviewModal } = useReviewStore();
+  const { startNavigation } = useNavigationStore();
+  const { openChat } = useChatStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -116,10 +123,25 @@ export default function UmkmDetailSidebar() {
     setSelectedUmkm(null);
     setSidebarView("nearby");
   };
-
+  const handleOpenChat = () => {
+    if (umkmDetail) {
+      openChat(umkmDetail.id, umkmDetail.name);
+    }
+  };
   const handleOpenReviewModal = () => {
     if (umkmDetail) {
       openReviewModal(umkmDetail.id);
+    }
+  };
+
+  const handleStartNavigation = () => {
+    if (!userLocation) {
+      alert("Aktifkan lokasi Anda terlebih dahulu untuk navigasi");
+      return;
+    }
+
+    if (umkmDetail) {
+      startNavigation(umkmDetail.name, [umkmDetail.lon, umkmDetail.lat]);
     }
   };
 
@@ -294,14 +316,18 @@ export default function UmkmDetailSidebar() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-3 gap-2">
-                  <button className="flex flex-col items-center gap-1 p-3 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 rounded-xl transition-colors">
+                 <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={handleStartNavigation}
+                    className="flex flex-col items-center gap-1 p-3 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!userLocation}
+                  >
                     <Navigation2 className="text-[#FF6B35]" size={20} />
                     <span className="text-xs font-medium text-[#FF6B35]">
                       Navigasi
                     </span>
                   </button>
-                  {umkmDetail.no_telp && (
+                  {umkmDetail?.no_telp && (
                     <a
                       href={`tel:${umkmDetail.no_telp}`}
                       className="flex flex-col items-center gap-1 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
@@ -312,11 +338,12 @@ export default function UmkmDetailSidebar() {
                       </span>
                     </a>
                   )}
-                  <button className="flex flex-col items-center gap-1 p-3 bg-green-50 hover:bg-green-100 rounded-xl transition-colors">
+                  <button
+                    onClick={handleOpenChat}
+                    className="flex flex-col items-center gap-1 p-3 bg-green-50 hover:bg-green-100 rounded-xl transition-colors"
+                  >
                     <MessageCircle className="text-green-600" size={20} />
-                    <span className="text-xs font-medium text-green-600">
-                      Chat
-                    </span>
+                    <span className="text-xs font-medium text-green-600">Chat</span>
                   </button>
                 </div>
 
@@ -493,10 +520,12 @@ export default function UmkmDetailSidebar() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">Ulasan</h4>
                     <div className="space-y-3">
-                      
                       {umkmDetail.reviews.slice(0, 3).map((review) => (
-                        <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
-                          {review.comment && (
+                        <div
+                          key={review.id}
+                          className="p-3 bg-gray-50 rounded-lg"
+                        >
+                          {review.full_name && (
                             <h3 className="text-sm font-medium text-gray-900 mb-1">
                               {review.full_name}
                             </h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
@@ -12,12 +12,17 @@ import {
   Navigation,
   Sparkles,
   MapPin,
+  X,
+  MessageCircle,
 } from "lucide-react";
 import { renderToString } from "react-dom/server";
 import Dropdown from "@/components/common/dropdown";
 import { createClient } from "@/lib/supabase/client";
 import { useMapStore } from "@/lib/store/useMapStore";
 import { getCategoryIcon, getCategoryColor } from "@/lib/utils/category-icons";
+import { useNavigationStore } from "@/lib/store/useNavigation";
+import { useChatStore } from "@/lib/store/useChatStore";
+import ChatPopup from "./chat-popup";
 
 interface MapViewProps {
   initialCenter?: [number, number];
@@ -41,8 +46,8 @@ export default function MapView({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const userMarker = useRef<maplibregl.Marker | null>(null);
+  const destinationMarker = useRef<maplibregl.Marker | null>(null);
   const umkmMarkers = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const markersCreated = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mapMode, setMapMode] = useState<MapMode>("default");
   const [umkmList, setUmkmList] = useState<UMKM[]>([]);
@@ -55,6 +60,23 @@ export default function MapView({
   const setUserLocation = useMapStore((state) => state.setUserLocation);
   const selectedUmkm = useMapStore((state) => state.selectedUmkm);
   const setSelectedUmkm = useMapStore((state) => state.setSelectedUmkm);
+  const selectedCategory = useMapStore((state) => state.selectedCategory);
+  const searchQuery = useMapStore((state) => state.searchQuery);
+  const { isChatOpen, toggleChatView } = useChatStore();
+  const handleOpenChat = () => {
+    console.log("Toggle chat view, current state:", isChatOpen);
+    // Buka chat list view
+    toggleChatView();
+  };
+  
+
+  const {
+    isNavigating,
+    destination,
+    routeData,
+    stopNavigation,
+    setRouteData,
+  } = useNavigationStore();
 
   const mapStyles = {
     default: "https://tiles.openfreemap.org/styles/bright",
@@ -79,6 +101,27 @@ export default function MapView({
       ],
     },
   };
+
+  // Filter UMKM based on search query and category
+  const filteredUmkmList = useMemo(() => {
+    let filtered = umkmList;
+
+    // Filter by category
+    if (selectedCategory !== "Semua") {
+      filtered = filtered.filter((umkm) => umkm.category === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((umkm) =>
+        umkm.name.toLowerCase().includes(query) ||
+        umkm.category.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [umkmList, selectedCategory, searchQuery]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -192,6 +235,9 @@ export default function MapView({
         if (userMarker.current) {
           userMarker.current.remove();
         }
+        if (destinationMarker.current) {
+          destinationMarker.current.remove();
+        }
         map.current.remove();
         map.current = null;
       }
@@ -235,20 +281,28 @@ export default function MapView({
       .setLngLat(userLocation)
       .addTo(map.current);
 
-    map.current.flyTo({
-      center: userLocation,
-      zoom: 15,
-      duration: 2000,
-    });
-  }, [userLocation, mapLoaded]);
+    if (!isNavigating) {
+      map.current.flyTo({
+        center: userLocation,
+        zoom: 15,
+        duration: 2000,
+      });
+    }
+  }, [userLocation, mapLoaded, isNavigating]);
 
-  // Create UMKM markers only once when data is loaded
+  // Update markers based on filtered list
   useEffect(() => {
-    if (!map.current || !mapLoaded || umkmList.length === 0 || markersCreated.current) return;
+    if (!map.current || !mapLoaded || umkmList.length === 0) return;
 
-    console.log("Creating UMKM markers...");
-    
-    umkmList.forEach((umkm) => {
+    console.log("Updating markers based on filters...");
+    console.log("Filtered UMKM count:", filteredUmkmList.length);
+
+    // Remove all existing markers
+    umkmMarkers.current.forEach((marker) => marker.remove());
+    umkmMarkers.current.clear();
+
+    // Add markers for filtered UMKM
+    filteredUmkmList.forEach((umkm) => {
       const el = document.createElement("div");
       el.className = "umkm-marker";
       const color = getCategoryColor(umkm.category);
@@ -301,13 +355,32 @@ export default function MapView({
       umkmMarkers.current.set(umkm.id, marker);
     });
 
-    markersCreated.current = true;
-    console.log(`Created ${umkmMarkers.current.size} markers`);
-  }, [mapLoaded, umkmList]);
+    console.log(`Updated to ${umkmMarkers.current.size} markers`);
 
-  // Focus on selected UMKM - WITHOUT removing markers
+    // Fit bounds to show all filtered markers
+    if (filteredUmkmList.length > 0 && !isNavigating && !selectedUmkm) {
+      const bounds = new maplibregl.LngLatBounds();
+      
+      filteredUmkmList.forEach((umkm) => {
+        bounds.extend([umkm.lon, umkm.lat]);
+      });
+
+      // Include user location if available
+      if (userLocation) {
+        bounds.extend(userLocation);
+      }
+
+      map.current.fitBounds(bounds, {
+        padding: { top: 100, bottom: 100, left: 450, right: 100 },
+        maxZoom: 15,
+        duration: 1000,
+      });
+    }
+  }, [filteredUmkmList, mapLoaded, isNavigating, selectedUmkm]);
+
+  // Focus on selected UMKM
   useEffect(() => {
-    if (!map.current || !selectedUmkm || !mapLoaded) return;
+    if (!map.current || !selectedUmkm || !mapLoaded || isNavigating) return;
 
     const umkm = umkmList.find((u) => u.id === selectedUmkm.id);
     if (umkm) {
@@ -319,19 +392,150 @@ export default function MapView({
         essential: true,
       });
     }
-  }, [selectedUmkm]);
+  }, [selectedUmkm, isNavigating]);
+
+  // Handle navigation routing
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !isNavigating || !destination || !userLocation)
+      return;
+
+    const fetchRoute = async () => {
+      try {
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${destination.coordinates[0]},${destination.coordinates[1]}?overview=full&geometries=geojson&steps=true`
+        );
+
+        const data = await response.json();
+
+        if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
+          console.error("No route found");
+          return;
+        }
+
+        const route = data.routes[0];
+        setRouteData({
+          distance: route.distance,
+          duration: route.duration,
+          geometry: route.geometry,
+        });
+
+        // Remove existing route layer and source
+        if (map.current!.getLayer("route")) {
+          map.current!.removeLayer("route");
+        }
+        if (map.current!.getSource("route")) {
+          map.current!.removeSource("route");
+        }
+
+        // Add route to map
+        map.current!.addSource("route", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: route.geometry,
+          },
+        });
+
+        map.current!.addLayer({
+          id: "route",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#FF6B35",
+            "line-width": 6,
+            "line-opacity": 0.8,
+          },
+        });
+
+        // Add destination marker
+        if (destinationMarker.current) {
+          destinationMarker.current.remove();
+        }
+
+        const destEl = document.createElement("div");
+        destEl.className = "destination-marker";
+        destEl.style.cssText = `
+          width: 40px;
+          height: 40px;
+          background-color: #FF6B35;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+          border: 3px solid white;
+        `;
+        destEl.innerHTML = `
+          <div style="transform: rotate(45deg); color: white;">
+            ${renderToString(<MapPin size={20} />)}
+          </div>
+        `;
+
+        destinationMarker.current = new maplibregl.Marker({ element: destEl })
+          .setLngLat(destination.coordinates)
+          .addTo(map.current!);
+
+        // Fit map to show entire route
+        const coordinates = route.geometry.coordinates;
+        const bounds = coordinates.reduce(
+          (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
+            return bounds.extend(coord as [number, number]);
+          },
+          new maplibregl.LngLatBounds(
+            coordinates[0],
+            coordinates[0]
+          )
+        );
+
+        map.current!.fitBounds(bounds, {
+          padding: { top: 100, bottom: 100, left: 100, right: 100 },
+          duration: 1500,
+        });
+      } catch (error) {
+        console.error("Error fetching route:", error);
+      }
+    };
+
+    fetchRoute();
+  }, [isNavigating, destination, userLocation, mapLoaded]);
+
+  // Clean up navigation
+  useEffect(() => {
+    if (!isNavigating && map.current && mapLoaded) {
+      // Remove route layer and source
+      if (map.current.getLayer("route")) {
+        map.current.removeLayer("route");
+      }
+      if (map.current.getSource("route")) {
+        map.current.removeSource("route");
+      }
+
+      // Remove destination marker
+      if (destinationMarker.current) {
+        destinationMarker.current.remove();
+        destinationMarker.current = null;
+      }
+    }
+  }, [isNavigating, mapLoaded]);
 
   // Handle map mode change
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    const style = mapMode === "satellite" ? mapStyles.satellite : mapStyles[mapMode];
+    const style =
+      mapMode === "satellite" ? mapStyles.satellite : mapStyles[mapMode];
 
     console.log("Changing map style to:", mapMode);
 
     map.current.once("styledata", () => {
       console.log("Style loaded, re-adding markers...");
-      
+
       setTimeout(() => {
         // Re-add user marker
         if (userMarker.current && userLocation) {
@@ -342,12 +546,12 @@ export default function MapView({
             .addTo(map.current!);
         }
 
-        // Re-add UMKM markers
+        // Re-add UMKM markers for filtered list
         const existingMarkers = Array.from(umkmMarkers.current.entries());
         umkmMarkers.current.clear();
 
         existingMarkers.forEach(([id, marker]) => {
-          const umkm = umkmList.find(u => u.id === id);
+          const umkm = filteredUmkmList.find((u) => u.id === id);
           if (umkm) {
             const el = marker.getElement();
             marker.remove();
@@ -357,6 +561,15 @@ export default function MapView({
             umkmMarkers.current.set(id, newMarker);
           }
         });
+
+        // Re-add destination marker if navigating
+        if (isNavigating && destination && destinationMarker.current) {
+          const el = destinationMarker.current.getElement();
+          destinationMarker.current.remove();
+          destinationMarker.current = new maplibregl.Marker({ element: el })
+            .setLngLat(destination.coordinates)
+            .addTo(map.current!);
+        }
 
         console.log("Markers re-added:", umkmMarkers.current.size);
       }, 100);
@@ -387,6 +600,34 @@ export default function MapView({
     } else if (!locationRequested) {
       requestLocation();
     }
+  };
+
+  const handleCancelNavigation = () => {
+    stopNavigation();
+  };
+
+  const handleOpenInGoogleMaps = () => {
+    if (!destination || !userLocation) return;
+
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation[1]},${userLocation[0]}&destination=${destination.coordinates[1]},${destination.coordinates[0]}&travelmode=driving`;
+    window.open(url, "_blank");
+  };
+
+  const formatDistance = (meters: number) => {
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    }
+    return `${(meters / 1000).toFixed(1)} km`;
+  };
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes} menit`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours} jam ${remainingMinutes} menit`;
   };
 
   const modeDropdownItems = [
@@ -432,6 +673,54 @@ export default function MapView({
         </div>
       )}
 
+      {/* Navigation Info Card */}
+      {isNavigating && destination && routeData && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl p-4 w-80 border border-gray-200">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900 mb-1">
+                Navigasi ke {destination.name}
+              </h3>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Navigation size={16} className="text-[#FF6B35]" />
+                  <span className="font-semibold text-gray-900">
+                    {formatDistance(routeData.distance)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-gray-900">
+                    {formatDuration(routeData.duration)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleCancelNavigation}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X size={20} className="text-gray-600" />
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleCancelNavigation}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleOpenInGoogleMaps}
+              className="flex-1 bg-[#FF6B35] hover:bg-[#ff5722] text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+            >
+              <Globe size={16} />
+              Google Maps
+            </button>
+          </div>
+        </div>
+      )}
+
       {showLocationPrompt && (
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-2xl p-4 max-w-sm border border-gray-200">
           <div className="flex items-start gap-3">
@@ -464,64 +753,97 @@ export default function MapView({
         </div>
       )}
 
-      <div className="absolute bottom-10 right-6 z-40 flex flex-col gap-2">
-        <Dropdown
-          trigger={
-            <button className="w-full bg-white hover:bg-gray-50 shadow-lg rounded-full p-3 flex items-center justify-center transition-all border border-gray-200">
-              {mapMode === "default" && (
-                <MapIcon size={20} className="text-gray-700" />
-              )}
-              {mapMode === "3d" && (
-                <Layers size={20} className="text-gray-700" />
-              )}
-              {mapMode === "satellite" && (
-                <Globe size={20} className="text-gray-700" />
-              )}
-            </button>
-          }
-          items={modeDropdownItems}
-          position="left"
-        />
+      {/* Filter Info Badge */}
+      {(selectedCategory !== "Semua" || searchQuery) && (
+        <div className="absolute top-20 left-6 z-50 bg-white rounded-lg shadow-lg p-3 max-w-xs">
+          <p className="text-sm text-gray-600">
+            Menampilkan <span className="font-bold text-[#FF6B35]">{filteredUmkmList.length}</span> UMKM
+            {selectedCategory !== "Semua" && (
+              <> dari kategori <span className="font-semibold">{selectedCategory}</span></>
+            )}
+            {searchQuery && (
+              <> untuk pencarian <span className="font-semibold">"{searchQuery}"</span></>
+            )}
+          </p>
+        </div>
+      )}
 
-        <button
-          onClick={() => console.log("AI Assistant")}
-          className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all"
-          title="AI Assistant"
-        >
-          <Sparkles size={20} className="text-gray-700" />
-        </button>
-
-        <button
-          onClick={handleGoToUserLocation}
-          className={`bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200 ${
-            !userLocation && !locationRequested ? "animate-pulse" : ""
-          }`}
-          title="Lokasi Saya"
-        >
-          <Navigation
-            size={20}
-            className={userLocation ? "text-blue-600" : "text-gray-700"}
+      {!isNavigating && (
+        <div className="absolute bottom-10 right-6 z-40 flex flex-col gap-2">
+          <button
+            onClick={handleOpenChat}
+            className={`bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border-2 ${
+              isChatOpen ? "border-green-500" : "border-gray-200"
+            }`}
+            title="Chat"
+          >
+            <MessageCircle
+              size={20}
+              className={isChatOpen ? "text-green-600" : "text-gray-700"}
+            />
+            {isChatOpen && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            )}
+          </button>
+          <Dropdown
+            trigger={
+              <button className="w-full bg-white hover:bg-gray-50 shadow-lg rounded-full p-3 flex items-center justify-center transition-all border border-gray-200">
+                {mapMode === "default" && (
+                  <MapIcon size={20} className="text-gray-700" />
+                )}
+                {mapMode === "3d" && (
+                  <Layers size={20} className="text-gray-700" />
+                )}
+                {mapMode === "satellite" && (
+                  <Globe size={20} className="text-gray-700" />
+                )}
+              </button>
+            }
+            items={modeDropdownItems}
+            position="left"
           />
-        </button>
 
-        <button
-          onClick={handleZoomIn}
-          className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
-          title="Zoom In"
-        >
-          <Plus size={20} className="text-gray-700" />
-        </button>
+          <button
+            onClick={() => console.log("AI Assistant")}
+            className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all"
+            title="AI Assistant"
+          >
+            <Sparkles size={20} className="text-gray-700" />
+          </button>
 
-        <button
-          onClick={handleZoomOut}
-          className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
-          title="Zoom Out"
-        >
-          <Minus size={20} className="text-gray-700" />
-        </button>
-      </div>
+          <button
+            onClick={handleGoToUserLocation}
+            className={`bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200 ${
+              !userLocation && !locationRequested ? "animate-pulse" : ""
+            }`}
+            title="Lokasi Saya"
+          >
+            <Navigation
+              size={20}
+              className={userLocation ? "text-blue-600" : "text-gray-700"}
+            />
+          </button>
+
+          <button
+            onClick={handleZoomIn}
+            className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
+            title="Zoom In"
+          >
+            <Plus size={20} className="text-gray-700" />
+          </button>
+
+          <button
+            onClick={handleZoomOut}
+            className="bg-white hover:bg-gray-50 shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all border border-gray-200"
+            title="Zoom Out"
+          >
+            <Minus size={20} className="text-gray-700" />
+          </button>
+        </div>
+      )}
 
       <div ref={mapContainer} className="w-full h-full" />
+      <ChatPopup />
     </div>
   );
 }
