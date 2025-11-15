@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   Upload,
+  ArrowLeft,
   X,
   Clock,
   Link as LinkIcon,
   Package,
   MapPin,
+  Trash2,
+  Star,
 } from "lucide-react";
 import CoordinatePicker from "../common/coordinat-picker";
 import axios from "axios";
@@ -18,6 +21,7 @@ import { useUserStore } from "@/lib/store/user-store";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 interface FormData {
   // Step 1
@@ -58,6 +62,7 @@ const AddventureForm = () => {
   const { user, setUser } = useUserStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
@@ -412,21 +417,14 @@ const AddventureForm = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Informasi UMKM
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  Lengkapi data dasar usaha Anda
-                </p>
-              </div>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Informasi Dasar
+            </h2>
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nama UMKM <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nama Bisnis
               </label>
               <input
                 type="text"
@@ -434,15 +432,64 @@ const AddventureForm = () => {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
-                placeholder="Contoh: Warung Makan Bu Ani"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-[#FF6B35] focus:bg-white transition-all"
+                placeholder="Masukkan nama bisnis"
               />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kategori
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-[#FF6B35] focus:bg-white transition-all text-left"
+                >
+                  {formData.category || "Pilih kategori"}
+                </button>
+                <ChevronRight
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-300 ${
+                    categoryDropdownOpen ? "rotate-[-90deg]" : "rotate-90"
+                  }`}
+                  size={20}
+                />
+
+                {/* Dropdown Menu */}
+                <motion.div
+                  initial={false}
+                  animate={{
+                    height: categoryDropdownOpen ? "auto" : 0,
+                    opacity: categoryDropdownOpen ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="absolute z-10 w-full mt-2 overflow-hidden"
+                >
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, category: cat }));
+                          setCategoryDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Deskripsi <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi
               </label>
               <textarea
                 value={formData.description}
@@ -453,117 +500,107 @@ const AddventureForm = () => {
                   }))
                 }
                 rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
-                placeholder="Ceritakan tentang usaha Anda..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-[#FF6B35] focus:bg-white transition-all resize-none"
+                placeholder="Ceritakan tentang bisnis Anda..."
               />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Kategori <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, category: e.target.value }))
-                }
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent transition-all"
-              >
-                <option value="">Pilih Kategori</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Lokasi <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lokasi
               </label>
-              <CoordinatePicker
-                value={[formData.lat, formData.lon]}
-                onChange={handleCoordinateChange}
+              <div className="mb-2">
+                <CoordinatePicker
+                  value={[formData.lat, formData.lon]}
+                  onChange={handleCoordinateChange}
+                />
+              </div>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, address: e.target.value }))
+                }
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-[#FF6B35] focus:bg-white transition-all"
+                placeholder="Alamat lengkap"
               />
-              {formData.address && (
-                <div className="mt-3 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-200">
-                  <p className="text-sm text-gray-600 mb-1">📍 Alamat:</p>
-                  <p className="text-sm font-medium text-gray-800">
-                    {formData.address}
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Media Upload */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Media (Maksimal 3) <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Foto
               </label>
-              <div className="space-y-4">
-                {formData.media.length < 3 && (
-                  <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-orange-50 transition-all">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-full flex items-center justify-center">
-                        <Upload className="text-white" size={28} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700">
-                        Klik untuk upload gambar
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG hingga 5MB
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
-                )}
 
-                {/* Preview Images */}
-                <div className="grid grid-cols-3 gap-4">
-                  {formData.media.map((file, index) => (
-                    <div key={index} className="relative group">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="media-upload"
+              />
+
+              <div className="flex gap-4 items-start">
+                {formData.media.slice(0, 2).map((file, index) => (
+                  <div key={index} className="relative group">
+                    <div className="relative w-32 h-32 rounded-3xl overflow-hidden border border-gray-200 bg-gray-50">
                       <Image
-                        width={200}
-                        height={200}
                         src={URL.createObjectURL(file)}
                         alt={`Preview ${index}`}
-                        className="w-full h-40 object-cover rounded-xl border-2 border-gray-200"
+                        fill
+                        className="object-cover"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeMedia(index)}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110"
-                      >
-                        <X size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({ ...prev, thumbnail: index }))
-                        }
-                        className={`absolute bottom-2 left-2 px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                          formData.thumbnail === index
-                            ? "bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] text-white shadow-lg"
-                            : "bg-white text-gray-700 border border-gray-300 hover:border-[#FF6B35]"
-                        }`}
-                      >
-                        {formData.thumbnail === index
-                          ? "✓ Thumbnail"
-                          : "Set Thumbnail"}
-                      </button>
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        {formData.thumbnail !== index && (
+                          <button
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                thumbnail: index,
+                              }))
+                            }
+                            className="p-2 bg-white rounded-lg hover:bg-gray-100"
+                            type="button"
+                          >
+                            <Star size={14} className="text-gray-700" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeMedia(index)}
+                          className="p-2 bg-white rounded-lg hover:bg-red-50"
+                          type="button"
+                        >
+                          <Trash2 size={14} className="text-red-600" />
+                        </button>
+                      </div>
+                      {formData.thumbnail === index && (
+                        <div className="absolute top-2 left-2 bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-md">
+                          Main
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+                <label
+                  htmlFor="media-upload"
+                  className="w-32 h-32 rounded-3xl border-2 border-dashed border-gray-300 hover:border-[#FF6B35] transition-colors cursor-pointer flex flex-col items-center justify-center bg-gray-50/50 group"
+                >
+                  <Upload
+                    size={24}
+                    className="text-gray-400 group-hover:text-[#FF6B35] transition-colors"
+                  />
+                  <span className="text-xs text-gray-500 mt-2">
+                    Upload disini
+                  </span>
+                </label>
               </div>
+              {formData.media.length > 2 && (
+                <p className="text-sm text-gray-500 mt-3">
+                  +{formData.media.length - 2} foto lagi
+                </p>
+              )}
             </div>
           </div>
         );
@@ -571,40 +608,35 @@ const AddventureForm = () => {
       case 2:
         return (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
-                <Clock className="text-white" size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Jam Operasional
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  Atur jadwal buka usaha Anda
-                </p>
-              </div>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Jam Operasional
+            </h2>
 
             <div className="space-y-3">
               {formData.operational_hours.map((hour, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#FF6B35] transition-all"
-                >
-                  <span className="w-24 font-semibold text-gray-700">
-                    {hour.day}
-                  </span>
+                <div key={index} className="flex items-center gap-4">
+                  <div className="w-28">
+                    <span className="text-sm font-medium text-gray-700">
+                      {hour.day}
+                    </span>
+                  </div>
 
-                  <select
-                    value={hour.status}
-                    onChange={(e) =>
-                      updateOperationalHour(index, "status", e.target.value)
-                    }
-                    className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
-                  >
-                    <option value="open">Buka</option>
-                    <option value="close">Tutup</option>
-                  </select>
+                  {/* Toggle Switch */}
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hour.status === "open"}
+                      onChange={(e) =>
+                        updateOperationalHour(
+                          index,
+                          "status",
+                          e.target.checked ? "open" : "close"
+                        )
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6B35]"></div>
+                  </label>
 
                   {hour.status === "open" && (
                     <>
@@ -614,16 +646,16 @@ const AddventureForm = () => {
                         onChange={(e) =>
                           updateOperationalHour(index, "open", e.target.value)
                         }
-                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
                       />
-                      <span className="text-gray-400 font-bold">-</span>
+                      <span className="text-gray-400">-</span>
                       <input
                         type="time"
                         value={hour.close}
                         onChange={(e) =>
                           updateOperationalHour(index, "close", e.target.value)
                         }
-                        className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
                       />
                     </>
                   )}
@@ -636,177 +668,152 @@ const AddventureForm = () => {
       case 3:
         return (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
-                <LinkIcon className="text-white" size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Link Sosial Media
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  Tambahkan link media sosial usaha Anda (opsional)
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {formData.links.map((link, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#FF6B35] transition-all"
-                >
-                  <input
-                    type="text"
-                    value={link.platform}
-                    onChange={(e) =>
-                      updateLink(index, "platform", e.target.value)
-                    }
-                    placeholder="Platform (Instagram, Facebook, dll)"
-                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
-                  />
-                  <input
-                    type="url"
-                    value={link.url}
-                    onChange={(e) => updateLink(index, "url", e.target.value)}
-                    placeholder="https://..."
-                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeLink(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              ))}
-
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Media Sosial
+              </h2>
               <button
-                type="button"
                 onClick={addLink}
-                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#FF6B35] hover:text-[#FF6B35] hover:bg-orange-50 transition-all font-medium"
+                type="button"
+                className="px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#ff5722] transition-colors text-sm"
               >
-                + Tambah Link Sosial Media
+                + Tambah Link
               </button>
             </div>
+
+            {formData.links.length === 0 ? (
+              <div className="text-center py-12">
+                <LinkIcon size={48} className="text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Belum ada link media sosial</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Klik "Tambah Link" untuk menambahkan
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {formData.links.map((link, index) => (
+                  <div
+                    key={index}
+                    className="flex gap-3 p-4 bg-gray-50 rounded-xl"
+                  >
+                    <input
+                      type="text"
+                      value={link.platform}
+                      onChange={(e) =>
+                        updateLink(index, "platform", e.target.value)
+                      }
+                      placeholder="Nama Platform (contoh: Instagram)"
+                      className="w-48 px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
+                    />
+                    <input
+                      type="url"
+                      value={link.url}
+                      onChange={(e) => updateLink(index, "url", e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeLink(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
 
       case 4:
         return (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FFA62B] rounded-xl flex items-center justify-center">
-                <Package className="text-white" size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Katalog Produk
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  Tambahkan produk atau layanan yang Anda tawarkan (opsional)
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {formData.catalog.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-6 border-2 border-gray-200 rounded-xl space-y-4 hover:border-[#FF6B35] transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-lg text-gray-700">
-                      Produk #{index + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeCatalog(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) =>
-                      updateCatalog(index, "name", e.target.value)
-                    }
-                    placeholder="Nama Produk"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
-                  />
-
-                  <input
-                    type="number"
-                    value={item.price}
-                    onChange={(e) =>
-                      updateCatalog(index, "price", Number(e.target.value))
-                    }
-                    placeholder="Harga (Rp)"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
-                  />
-
-                  {/* Image Upload for Product */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Gambar Produk
-                    </label>
-                    {item.image ? (
-                      <div className="relative group">
-                        <Image
-                          width={400}
-                          height={300}
-                          src={URL.createObjectURL(item.image)}
-                          alt={`Product ${index}`}
-                          className="w-full h-56 object-cover rounded-xl border-2 border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateCatalog(
-                              index,
-                              "image",
-                              null as unknown as File
-                            )
-                          }
-                          className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-orange-50 transition-all">
-                        <div className="text-center">
-                          <div className="w-14 h-14 mx-auto mb-2 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                            <Upload className="text-white" size={24} />
-                          </div>
-                          <p className="text-sm font-medium text-gray-600">
-                            Upload gambar produk
-                          </p>
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleCatalogImageUpload(index, e)}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              ))}
-
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Produk & Layanan
+              </h2>
               <button
-                type="button"
                 onClick={addCatalog}
-                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-[#FF6B35] hover:text-[#FF6B35] hover:bg-orange-50 transition-all font-medium"
+                type="button"
+                className="px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#ff5722] transition-colors text-sm"
               >
                 + Tambah Produk
               </button>
             </div>
+
+            {formData.catalog.length === 0 ? (
+              <div className="text-center py-12">
+                <Package size={48} className="text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Belum ada produk</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Klik "Tambah Produk" untuk menambahkan
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {formData.catalog.map((item, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gray-50 rounded-xl space-y-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-medium text-gray-700">
+                        Produk {index + 1}
+                      </h3>
+                      <button
+                        onClick={() => removeCatalog(index)}
+                        type="button"
+                        className="text-red-600 hover:bg-red-50 p-2 rounded-lg"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) =>
+                          updateCatalog(index, "name", e.target.value)
+                        }
+                        placeholder="Nama produk"
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
+                      />
+                      <input
+                        type="number"
+                        value={item.price}
+                        onChange={(e) =>
+                          updateCatalog(index, "price", Number(e.target.value))
+                        }
+                        placeholder="Harga"
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-2">
+                        Foto Produk
+                      </label>
+                      {item.image && (
+                        <div className="relative h-32 w-32 mb-2 rounded-lg overflow-hidden">
+                          <Image
+                            src={URL.createObjectURL(item.image)}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleCatalogImageUpload(index, e)}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
 
@@ -816,72 +823,82 @@ const AddventureForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
-      <div className="max-w-5xl mx-auto p-6 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] bg-clip-text text-transparent mb-2">
-            Daftarkan UMKM Anda
-          </h1>
-          <p className="text-gray-600">
-            Lengkapi informasi usaha Anda dalam 4 langkah mudah
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <Link href={`/map`}>
+              <button className="flex items-center gap-2 text-gray-700 hover:text-[#FF6B35] font-medium transition-all">
+                <ArrowLeft size={20} />
+                Kembali
+              </button>
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900">Tambah UMKM</h1>
+          </div>
         </div>
-
-        {/* Progress Bar */}
-        <div className="mb-12">
+      </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Progress Steps */}
+        <div className="mb-8">
           <div className="relative">
-            {/* Background Line */}
-            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" />
-
-            {/* Animated Progress Line */}
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${((currentStep - 1) / 3) * 100}%` }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
-              className="absolute top-5 left-0 h-1 bg-gradient-to-r from-[#FF6B35] to-[#FFA62B] rounded-full z-10"
-            />
-
-            {/* Steps */}
-            <div className="relative flex justify-between">
+            {/* Steps Container */}
+            <div className="flex items-start justify-between relative">
+              {/* Steps */}
               {[
-                { num: 1, label: "Informasi UMKM", icon: MapPin },
-                { num: 2, label: "Jam Operasional", icon: Clock },
-                { num: 3, label: "Link Sosial", icon: LinkIcon },
-                { num: 4, label: "Katalog Produk", icon: Package },
-              ].map((step) => {
-                const Icon = step.icon;
-                const isActive = currentStep >= step.num;
-                const isCurrent = currentStep === step.num;
-
-                return (
-                  <div key={step.num} className="flex flex-col items-center">
-                    <motion.div
-                      initial={false}
-                      animate={{
-                        scale: isCurrent ? 1.1 : 1,
-                        backgroundColor: isActive ? "#FF6B35" : "#E5E7EB",
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-lg z-20 ${
-                        isActive ? "text-white" : "text-gray-400"
+                { num: 1, label: "Informasi Dasar" },
+                { num: 2, label: "Jam Operasional" },
+                { num: 3, label: "Media Sosial" },
+                { num: 4, label: "Produk" },
+              ].map((step, index) => (
+                <React.Fragment key={step.num}>
+                  <div className="flex flex-col items-center relative z-10">
+                    {/* Circle */}
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                        step.num === currentStep
+                          ? "bg-[#FF6B35] text-white scale-110 border-2 border-[#FF6B35]"
+                          : step.num < currentStep
+                          ? "bg-[#FF6B35] text-white border-2 border-[#FF6B35]"
+                          : "bg-white border-2 border-gray-300 text-gray-400"
                       }`}
                     >
-                      <Icon size={20} />
-                    </motion.div>
-                    <motion.span
-                      initial={false}
-                      animate={{
-                        color: isActive ? "#FF6B35" : "#9CA3AF",
-                        fontWeight: isCurrent ? 600 : 400,
-                      }}
-                      className="text-sm mt-2 text-center max-w-[80px]"
+                      {step.num}
+                    </div>
+
+                    {/* Label */}
+                    <span
+                      className={`mt-2 text-xs font-medium transition-colors whitespace-nowrap ${
+                        step.num <= currentStep
+                          ? "text-[#FF6B35]"
+                          : "text-gray-400"
+                      }`}
                     >
                       {step.label}
-                    </motion.span>
+                    </span>
                   </div>
-                );
-              })}
+
+                  {/* Line after circle (except for last step) */}
+                  {index < 3 && (
+                    <div
+                      className="flex-1 flex items-center relative"
+                      style={{ marginTop: "20px" }}
+                    >
+                      <div
+                        className={`w-full h-0.5 bg-gray-200 ${
+                          index === 2 ? "mr-5" : ""
+                        }`}
+                      >
+                        <div
+                          className={`h-full bg-[#FF6B35] transition-all duration-300 ${
+                            currentStep > step.num ? "w-full" : "w-0"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </div>
@@ -893,41 +910,50 @@ const AddventureForm = () => {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100"
+          className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6"
         >
           {renderStepContent()}
+
+          {/* Navigation Buttons - Inside Card */}
+          <div className="flex justify-between pt-6 mt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={20} />
+              Sebelumnya
+            </button>
+
+            {currentStep < 4 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
+                className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-xl hover:bg-[#ff5722] transition-all"
+              >
+                Selanjutnya
+                <ChevronRight size={20} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-xl hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan"
+                )}
+              </button>
+            )}
+          </div>
         </motion.div>
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2 px-8 py-3 border-2 border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
-          >
-            Kembali
-          </button>
-
-          {currentStep < 4 ? (
-            <button
-              type="button"
-              onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
-              className="flex items-center gap-2 px-8 py-3 bg-[#FF6B35] font-semibold text-white rounded-full hover:shadow-lg transition-all"
-            >
-              Selanjutnya
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-            >
-              {loading ? "Menyimpan..." : "Submit"}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );

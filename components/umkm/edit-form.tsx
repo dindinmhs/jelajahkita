@@ -8,7 +8,6 @@ import {
   Link as LinkIcon,
   Package,
   ArrowLeft,
-  Save,
   Trash2,
   Star,
 } from "lucide-react";
@@ -538,7 +537,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
       <div className="">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href={`/umkm/${umkmData.id}`}>
+            <Link href={`/umkm`}>
               <button className="flex items-center gap-2 text-gray-700 hover:text-[#FF6B35] font-medium transition-all">
                 <ArrowLeft size={20} />
                 Kembali
@@ -1076,10 +1075,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
                     Menyimpan...
                   </>
                 ) : (
-                  <>
-                    <Save size={20} />
-                    Simpan Perubahan
-                  </>
+                  <>Simpan Perubahan</>
                 )}
               </button>
             )}
