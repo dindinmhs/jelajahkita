@@ -1,4 +1,3 @@
-"use client"
 import { Navbar } from "@/components/navbar";
 import { ScrollAnimationWrapper } from "@/components/scroll-animation-wrapper";
 import {

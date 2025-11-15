@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { AuthButton } from "../auth-button";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -82,16 +83,7 @@ export function Navbar() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="/auth/login">
-                <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-5 bg-white text-[#FF6B35] border-2 border-[#FF6B35] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#FF6B35] hover:text-white transition-colors">
-                  <span className="truncate">Masuk</span>
-                </button>
-              </Link>
-              <Link href="/auth/sign-up">
-                <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-5 bg-[#FF6B35] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#ff8c42] transition-colors shadow-md">
-                  <span className="truncate">Daftar</span>
-                </button>
-              </Link>
+              <AuthButton />
             </div>
           </div>
         </nav>

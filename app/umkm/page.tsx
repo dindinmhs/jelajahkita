@@ -19,7 +19,7 @@ export default async function UmkmPage() {
   const phone = user.user_metadata?.phone || "";
   const createdAt = user.created_at || new Date().toISOString();
 
-  // Get user's UMKM
+  // Get user's UMKM with reviews
   const { data: umkmData } = await supabase
     .from("umkm")
     .select(
@@ -33,26 +33,39 @@ export default async function UmkmPage() {
       media (
         image_url,
         is_thumbnail
+      ),
+      review (
+        rating
       )
     `
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Transform UMKM data with thumbnails
-  const umkmList = (umkmData || []).map((umkm: any) => ({
-    id: umkm.id,
-    name: umkm.name,
-    description: umkm.description,
-    category: umkm.category,
-    address: umkm.address,
-    status: "published", // You can add status field to database
-    rating: 4.5, // You can calculate from reviews
-    reviewCount: 0, // You can count from reviews
-    thumbnail:
-      umkm.media?.find((m: any) => m.is_thumbnail)?.image_url ||
-      umkm.media?.[0]?.image_url,
-  }));
+  // Transform UMKM data with thumbnails and calculate ratings
+  const umkmList = (umkmData || []).map((umkm: any) => {
+    const reviews = umkm.review || [];
+    const reviewCount = reviews.length;
+    const avgRating =
+      reviewCount > 0
+        ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) /
+          reviewCount
+        : 0;
+
+    return {
+      id: umkm.id,
+      name: umkm.name,
+      description: umkm.description,
+      category: umkm.category,
+      address: umkm.address,
+      status: "published",
+      rating: avgRating > 0 ? Number(avgRating.toFixed(1)) : undefined,
+      reviewCount: reviewCount,
+      thumbnail:
+        umkm.media?.find((m: any) => m.is_thumbnail)?.image_url ||
+        umkm.media?.[0]?.image_url,
+    };
+  });
 
   // Calculate category distribution
   const categoryCount: Record<string, number> = {};
@@ -66,7 +79,7 @@ export default async function UmkmPage() {
     })
   );
 
-  // Calculate review rating distribution (1-5 stars)
+  // Calculate review rating distribution (1-5 stars) from actual reviews
   const ratingCount: Record<number, number> = {
     1: 0,
     2: 0,
@@ -75,11 +88,20 @@ export default async function UmkmPage() {
     5: 0,
   };
 
-  // Count ratings from all businesses
-  umkmList.forEach((umkm) => {
-    if (umkm.rating && umkm.rating >= 1 && umkm.rating <= 5) {
-      const roundedRating = Math.round(umkm.rating);
-      ratingCount[roundedRating]++;
+  // Get all reviews for user's UMKM
+  const { data: allReviews } = await supabase
+    .from("review")
+    .select("rating, umkm_id")
+    .in(
+      "umkm_id",
+      umkmList.map((u) => u.id)
+    );
+
+  // Count ratings from actual reviews
+  (allReviews || []).forEach((review: any) => {
+    const rating = Math.round(review.rating);
+    if (rating >= 1 && rating <= 5) {
+      ratingCount[rating]++;
     }
   });
 
@@ -89,11 +111,14 @@ export default async function UmkmPage() {
     count: ratingCount[rating],
   }));
 
+  // Get total reviews count
+  const totalReviews = allReviews?.length || 0;
+
   // Get stats
   const stats = {
     savedPlaces: 0, // Implement saved places feature
     myBusinesses: umkmList.length,
-    reviews: 0, // Implement reviews count
+    reviews: totalReviews,
     trips: 0, // Implement trips feature
   };
 

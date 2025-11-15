@@ -92,7 +92,7 @@ export function HeroSection() {
                 <span className="truncate">Jelajahi UMKM Terdekat</span>
               </button>
             </Link>
-            <Link href="/auth/sign-up">
+            <Link href="/umkm">
               <button className="flex min-w-[160px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-white text-[#FF6B35] border-2 border-[#FF6B35] text-base font-bold leading-normal tracking-[0.015em] hover:text-white hover:bg-[#FF6B35] transition-colors shadow-md">
                 <span className="truncate">Daftarkan Bisnismu</span>
               </button>

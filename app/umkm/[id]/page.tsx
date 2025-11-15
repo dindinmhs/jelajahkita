@@ -18,7 +18,7 @@ export default async function UmkmDetailPage({
     return redirect("/auth/login");
   }
 
-  // Get UMKM detail with all related data
+  // Get UMKM detail with all related data including reviews
   const { data: umkmData, error } = await supabase
     .from("umkm")
     .select(
@@ -57,5 +57,33 @@ export default async function UmkmDetailPage({
     return redirect("/umkm");
   }
 
-  return <DetailView umkmData={umkmData} />;
+  // Get reviews with user information from auth metadata
+  const { data: reviews } = await supabase
+    .from("review")
+    .select("*")
+    .eq("umkm_id", id)
+    .order("created_at", { ascending: false });
+
+  // Add full_name from auth users
+  const reviewsWithUsers = await Promise.all(
+    (reviews || []).map(async (review: any) => {
+      // Try to get user metadata
+      const {
+        data: { users },
+      } = await supabase.auth.admin.listUsers();
+      const reviewUser = users?.find((u) => u.id === review.user_id);
+
+      return {
+        ...review,
+        full_name: reviewUser?.user_metadata?.full_name || "Pengguna",
+      };
+    })
+  );
+
+  const umkmDataWithReviews = {
+    ...umkmData,
+    review: reviewsWithUsers,
+  };
+
+  return <DetailView umkmData={umkmDataWithReviews} />;
 }
