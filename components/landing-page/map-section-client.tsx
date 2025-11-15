@@ -128,7 +128,9 @@ export default function MapSectionClient({ umkmList }: MapSectionClientProps) {
                     <p className="text-[#60584C] text-sm mt-2 line-clamp-2">
                       {umkm.description}
                     </p>
-                    <Link href={`/umkm/${umkm.id}`}>
+                    <Link
+                      href={`/map?lat=${umkm.lat}&lng=${umkm.lon}&umkm=${umkm.id}`}
+                    >
                       <button className="text-[#FF6B35] text-sm font-semibold mt-3 hover:text-[#FF6B35]/80 transition-colors flex items-center gap-1">
                         Lihat Detail
                         <span className="material-symbols-outlined !text-base">

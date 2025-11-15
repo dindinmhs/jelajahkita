@@ -36,6 +36,9 @@ interface UMKM {
   id: string;
   name: string;
   category: string;
+  description?: string;
+  rating?: number;
+  image?: string;
   lon: number;
   lat: number;
 }
@@ -69,15 +72,9 @@ export default function MapView({
     // Buka chat list view
     toggleChatView();
   };
-  
 
-  const {
-    isNavigating,
-    destination,
-    routeData,
-    stopNavigation,
-    setRouteData,
-  } = useNavigationStore();
+  const { isNavigating, destination, routeData, stopNavigation, setRouteData } =
+    useNavigationStore();
 
   const mapStyles = {
     default: "https://tiles.openfreemap.org/styles/bright",
@@ -115,9 +112,10 @@ export default function MapView({
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((umkm) =>
-        umkm.name.toLowerCase().includes(query) ||
-        umkm.category.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (umkm) =>
+          umkm.name.toLowerCase().includes(query) ||
+          umkm.category.toLowerCase().includes(query)
       );
     }
 
@@ -194,9 +192,16 @@ export default function MapView({
 
     const fetchUMKM = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("umkm")
-        .select("id, name, category, lon, lat");
+      const { data, error } = await supabase.from("umkm").select(`
+          id,
+          name,
+          category,
+          description,
+          lon,
+          lat,
+          media (image_url, is_thumbnail),
+          review (rating)
+        `);
 
       if (error) {
         console.error("Error fetching UMKM:", error);
@@ -204,7 +209,26 @@ export default function MapView({
       }
 
       if (data) {
-        setUmkmList(data);
+        const transformedData = data.map((umkm: any) => {
+          const ratings = umkm.review?.map((r: any) => r.rating) || [];
+          const avgRating =
+            ratings.length > 0
+              ? ratings.reduce((sum: number, r: number) => sum + r, 0) /
+                ratings.length
+              : 0;
+
+          return {
+            id: umkm.id,
+            name: umkm.name,
+            category: umkm.category,
+            description: umkm.description,
+            lon: umkm.lon,
+            lat: umkm.lat,
+            image: umkm.media?.[0]?.image_url || "/placeholder-umkm.jpg",
+            rating: parseFloat(avgRating.toFixed(1)),
+          };
+        });
+        setUmkmList(transformedData);
       }
     };
 
@@ -345,6 +369,87 @@ export default function MapView({
         </div>
       `;
 
+      // Create popup element
+      const popup = document.createElement("div");
+      popup.className = "umkm-popup";
+      popup.style.cssText = `
+        position: absolute;
+        bottom: 50px;
+        left: 50%;
+        transform: translateX(-50%) translateY(10px) scale(0.95);
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 0;
+        width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        z-index: 1000;
+        pointer-events: auto;
+        transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+      `;
+
+      const rating = umkm.rating || 0;
+      const stars = "⭐".repeat(Math.floor(rating));
+
+      popup.innerHTML = `
+        <div style="position: relative;">
+          <img 
+            src="${umkm.image || "/placeholder-umkm.jpg"}" 
+            alt="${umkm.name}"
+            style="width: 100%; height: 100px; object-fit: cover; border-radius: 12px 12px 0 0;"
+          />
+          <div style="padding: 12px;">
+            <h3 style="font-size: 14px; font-weight: 700; color: #1C160C; margin: 0 0 4px 0; line-height: 1.3;">
+              ${umkm.name}
+            </h3>
+            <p style="font-size: 12px; color: #60584C; margin: 0 0 8px 0;">
+              ${umkm.category}
+            </p>
+            ${
+              rating > 0
+                ? `
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 12px;">${stars}</span>
+                <span style="font-size: 12px; color: #1C160C; font-weight: 600;">(${rating.toFixed(
+                  1
+                )})</span>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        </div>
+      `;
+
+      el.appendChild(popup);
+
+      let hideTimeout: NodeJS.Timeout | null = null;
+
+      const showPopup = () => {
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+        popup.style.opacity = "1";
+        popup.style.visibility = "visible";
+        popup.style.transform = "translateX(-50%) translateY(0) scale(1)";
+      };
+
+      const hidePopup = () => {
+        hideTimeout = setTimeout(() => {
+          popup.style.opacity = "0";
+          popup.style.visibility = "hidden";
+          popup.style.transform =
+            "translateX(-50%) translateY(10px) scale(0.95)";
+        }, 200);
+      };
+
+      el.addEventListener("mouseenter", showPopup);
+      el.addEventListener("mouseleave", hidePopup);
+      popup.addEventListener("mouseenter", showPopup);
+      popup.addEventListener("mouseleave", hidePopup);
+
       el.addEventListener("click", () => {
         setSelectedUmkm(umkm);
       });
@@ -361,7 +466,7 @@ export default function MapView({
     // Fit bounds to show all filtered markers
     if (filteredUmkmList.length > 0 && !isNavigating && !selectedUmkm) {
       const bounds = new maplibregl.LngLatBounds();
-      
+
       filteredUmkmList.forEach((umkm) => {
         bounds.extend([umkm.lon, umkm.lat]);
       });
@@ -397,7 +502,13 @@ export default function MapView({
 
   // Handle navigation routing
   useEffect(() => {
-    if (!map.current || !mapLoaded || !isNavigating || !destination || !userLocation)
+    if (
+      !map.current ||
+      !mapLoaded ||
+      !isNavigating ||
+      !destination ||
+      !userLocation
+    )
       return;
 
     const fetchRoute = async () => {
@@ -488,10 +599,7 @@ export default function MapView({
           (bounds: maplibregl.LngLatBounds, coord: [number, number]) => {
             return bounds.extend(coord as [number, number]);
           },
-          new maplibregl.LngLatBounds(
-            coordinates[0],
-            coordinates[0]
-          )
+          new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
         );
 
         map.current!.fitBounds(bounds, {
@@ -758,12 +866,24 @@ export default function MapView({
       {(selectedCategory !== "Semua" || searchQuery) && (
         <div className="absolute top-20 left-6 z-50 bg-white rounded-lg shadow-lg p-3 max-w-xs">
           <p className="text-sm text-gray-600">
-            Menampilkan <span className="font-bold text-[#FF6B35]">{filteredUmkmList.length}</span> UMKM
+            Menampilkan{" "}
+            <span className="font-bold text-[#FF6B35]">
+              {filteredUmkmList.length}
+            </span>{" "}
+            UMKM
             {selectedCategory !== "Semua" && (
-              <> dari kategori <span className="font-semibold">{selectedCategory}</span></>
+              <>
+                {" "}
+                dari kategori{" "}
+                <span className="font-semibold">{selectedCategory}</span>
+              </>
             )}
             {searchQuery && (
-              <> untuk pencarian <span className="font-semibold">"{searchQuery}"</span></>
+              <>
+                {" "}
+                untuk pencarian{" "}
+                <span className="font-semibold">"{searchQuery}"</span>
+              </>
             )}
           </p>
         </div>
