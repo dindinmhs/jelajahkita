@@ -266,6 +266,8 @@ const AddventureForm = () => {
     try {
       // 1. Upload media UMKM ke storage
       const mediaUrls: string[] = [];
+      let thumbnailFile: File | null = null;
+      
       for (let i = 0; i < formData.media.length; i++) {
         const file = formData.media[i];
         const fileName = `${Date.now()}_${i}_${file.name}`;
@@ -280,9 +282,69 @@ const AddventureForm = () => {
         } = supabase.storage.from("umkm-media").getPublicUrl(fileName);
 
         mediaUrls.push(publicUrl);
+        
+        // Save thumbnail file
+        if (i === formData.thumbnail) {
+          thumbnailFile = file;
+        }
       }
 
-      // 2. Insert data UMKM
+      // 2. Generate embeddings
+      let textEmbedding = null;
+      let imageEmbedding = null;
+
+      try {
+        // Convert thumbnail image to base64
+        let imageBase64 = undefined;
+        if (thumbnailFile) {
+          const reader = new FileReader();
+          imageBase64 = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => {
+              const base64String = reader.result as string;
+              // Remove data:image/...;base64, prefix
+              const base64Data = base64String.split(',')[1];
+              resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(thumbnailFile);
+          });
+        }
+
+        // Combine text for embedding
+        const combinedText = [
+          formData.name,
+          formData.category,
+          formData.description,
+          formData.address,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        // Call embedding API
+        const embeddingResponse = await fetch("/api/embeddings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: combinedText,
+            imageBase64: imageBase64,
+          }),
+        });
+
+        if (!embeddingResponse.ok) {
+          console.error("Failed to generate embeddings");
+        } else {
+          const embeddingData = await embeddingResponse.json();
+          textEmbedding = embeddingData.textEmbedding;
+          imageEmbedding = embeddingData.imageEmbedding;
+        }
+      } catch (embeddingError) {
+        console.error("Error generating embeddings:", embeddingError);
+        // Continue without embeddings
+      }
+
+      // 3. Insert data UMKM with embeddings
       const { data: umkmData, error: umkmError } = await supabase
         .from("umkm")
         .insert({
@@ -293,6 +355,8 @@ const AddventureForm = () => {
           lat: formData.lat,
           lon: formData.lon,
           category: formData.category,
+          text_embedding: textEmbedding,
+          image_embedding: imageEmbedding,
         })
         .select()
         .single();
@@ -301,7 +365,7 @@ const AddventureForm = () => {
 
       const umkmId = umkmData.id;
 
-      // 3. Insert media UMKM
+      // 4. Insert media UMKM
       const mediaInserts = mediaUrls.map((url, index) => ({
         umkm_id: umkmId,
         image_url: url,
@@ -314,7 +378,7 @@ const AddventureForm = () => {
 
       if (mediaError) throw mediaError;
 
-      // 4. Insert operational hours (dengan day sebagai numerik)
+      // 5. Insert operational hours (dengan day sebagai numerik)
       const operationalInserts = formData.operational_hours.map((hour) => ({
         umkm_id: umkmId,
         day: hour.dayNumber, // Simpan sebagai angka 1-7
@@ -329,7 +393,7 @@ const AddventureForm = () => {
 
       if (operationalError) throw operationalError;
 
-      // 5. Insert links
+      // 6. Insert links
       if (formData.links.length > 0) {
         const linkInserts = formData.links.map((link) => ({
           umkm_id: umkmId,
@@ -344,7 +408,7 @@ const AddventureForm = () => {
         if (linkError) throw linkError;
       }
 
-      // 6. Upload product images dan insert catalog
+      // 7. Upload product images dan insert catalog
       if (formData.catalog.length > 0) {
         for (const item of formData.catalog) {
           let imageUrl = "";
@@ -382,6 +446,8 @@ const AddventureForm = () => {
 
       alert("Data berhasil disimpan!");
       console.log("UMKM ID:", umkmId);
+      console.log("Text Embedding generated:", !!textEmbedding);
+      console.log("Image Embedding generated:", !!imageEmbedding);
 
       // Reset form atau redirect
       router.push("/map");
