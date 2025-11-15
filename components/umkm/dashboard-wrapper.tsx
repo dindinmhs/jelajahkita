@@ -435,7 +435,7 @@ export default function DashboardWrapper({
 
                         <div className="flex items-center gap-4">
                           <Link
-                            href={`/umkm/edit/${umkm.id}`}
+                            href={`/umkm/${umkm.id}/edit`}
                             className="text-[#FF6B35] hover:text-[#ff5722] text-sm font-medium flex items-center gap-1"
                           >
                             <Edit2 size={14} />
