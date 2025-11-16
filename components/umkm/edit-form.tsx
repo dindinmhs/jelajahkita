@@ -18,10 +18,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
 const CoordinatePicker = dynamic(
-  () => import('../common/coordinat-picker'),
+  () => import("../common/coordinat-picker"),
   { 
     ssr: false,
     loading: () => (

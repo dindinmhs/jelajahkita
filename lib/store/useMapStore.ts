@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface UMKM {
   id: string;
@@ -10,7 +10,7 @@ interface UMKM {
   lat?: number;
 }
 
-type SidebarView = 'nearby' | 'detail';
+type SidebarView = "nearby" | "detail";
 
 interface MapStore {
   isSidebarOpen: boolean;
@@ -40,7 +40,7 @@ interface MapStore {
 
 export const useMapStore = create<MapStore>((set) => ({
   isSidebarOpen: true,
-  sidebarView: 'nearby',
+  sidebarView: "nearby",
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (open) => set({ isSidebarOpen: open }),
   setSidebarView: (view) => set({ sidebarView: view }),
@@ -53,16 +53,16 @@ export const useMapStore = create<MapStore>((set) => ({
   selectedUmkm: null,
   setSelectedUmkm: (umkm) => set({ 
     selectedUmkm: umkm,
-    sidebarView: umkm ? 'detail' : 'nearby',
+    sidebarView: umkm ? "detail" : "nearby",
     isSidebarOpen: true
   }),
 
   userLocation: null,
   setUserLocation: (location) => set({ userLocation: location }),
 
-  selectedCategory: 'Semua',
+  selectedCategory: "Semua",
   setSelectedCategory: (category) => set({ selectedCategory: category }),
 
-  searchQuery: '',
+  searchQuery: "",
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));

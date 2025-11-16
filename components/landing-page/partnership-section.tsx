@@ -37,7 +37,7 @@ export function PartnershipSection() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cg fill='%23FF6B35' fill-opacity='0.15'%3E%3Cpath d='M0 0h80v80H0V0zm20 20v40h40V20H20zm5 5h30v30H25V25z'/%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cg fill='%23FF6B35' fill-opacity='0.15'%3E%3Cpath d='M0 0h80v80H0V0zm20 20v40h40V20H20zm5 5h30v30H25V25z'/%3E%3C/g%3E%3C/svg%3E\")",
             backgroundSize: "100px 100px",
           }}
         />

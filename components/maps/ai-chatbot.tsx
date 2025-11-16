@@ -107,7 +107,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
         playNextChunk();
       }
     } catch (error) {
-      console.error('❌ Error processing audio chunk:', error);
+      console.error("❌ Error processing audio chunk:", error);
     }
   };
 
@@ -213,8 +213,8 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
       const sessionId = Math.random().toString(36).substring(2);
 
       const postResponse = await fetch(`/api/ai-assistant-live?sessionId=${sessionId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query,
           ragResults: ragData.rag_results,
@@ -223,7 +223,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
       });
 
       if (!postResponse.ok) {
-        throw new Error('Failed to initialize AI session');
+        throw new Error("Failed to initialize AI session");
       }
 
       const eventSource = new EventSource(`/api/ai-assistant-live?sessionId=${sessionId}`);
@@ -234,21 +234,21 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
           const streamData = JSON.parse(event.data);
 
           switch (streamData.type) {
-            case 'connected':
+            case "connected":
               setConnectionStatus("connected");
               break;
 
-            case 'text':
+            case "text":
               setAiResponse(prev => prev + streamData.text);
               break;
 
-            case 'audioChunk':
+            case "audioChunk":
               if (streamData.data && streamData.data.length > 0) {
                 await playAudioChunk(streamData.data);
               }
               break;
 
-            case 'functionCalls':
+            case "functionCalls":
               if (Array.isArray(streamData.functionCalls)) {
                 for (const call of streamData.functionCalls) {
                   if (call && call.name) {
@@ -258,15 +258,15 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
               }
               break;
 
-            case 'complete':
+            case "complete":
               setIsLoading(false);
               setConnectionStatus("disconnected");
               eventSource.close();
               eventSourceRef.current = null;
               break;
 
-            case 'error':
-              setError(streamData.error || 'Unknown error');
+            case "error":
+              setError(streamData.error || "Unknown error");
               setIsLoading(false);
               setConnectionStatus("disconnected");
               eventSource.close();
@@ -274,7 +274,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
               break;
           }
         } catch (parseError) {
-          console.error('❌ Parse error:', parseError);
+          console.error("❌ Parse error:", parseError);
         }
       };
 
@@ -301,12 +301,12 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
 
     try {
       switch (functionName) {
-        case 'show_umkm_details': {
+        case "show_umkm_details": {
           const { umkm_id, focus_map = true } = args;
           
           const umkm = ragResults.find(r => r.umkm_id === umkm_id);
           if (!umkm) {
-            console.warn('UMKM not found in RAG results');
+            console.warn("UMKM not found in RAG results");
             return;
           }
 
@@ -319,7 +319,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
             lat: umkm.lat,
           });
 
-          setSidebarView('detail');
+          setSidebarView("detail");
           setSidebarOpen(true);
 
           if (focus_map && map.current) {
@@ -332,7 +332,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
           break;
         }
 
-        case 'navigate_to_umkm': {
+        case "navigate_to_umkm": {
           const { umkm_id, umkm_name, coordinates } = args;
           
           if (!coordinates && umkm_id) {
@@ -346,7 +346,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
           break;
         }
 
-        case 'highlight_umkm': {
+        case "highlight_umkm": {
           const { umkm_ids, zoom_to_bounds = true } = args;
           
           if (!Array.isArray(umkm_ids) || umkm_ids.length === 0) break;
@@ -358,17 +358,17 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
             if (marker) {
               const element = marker.getElement();
               
-              element.classList.add('animate-bounce');
-              element.style.filter = 'drop-shadow(0 0 10px rgba(255, 107, 53, 0.8))';
-              element.style.transform = 'scale(1.2)';
+              element.classList.add("animate-bounce");
+              element.style.filter = "drop-shadow(0 0 10px rgba(255, 107, 53, 0.8))";
+              element.style.transform = "scale(1.2)";
               
               const lngLat = marker.getLngLat();
               bounds.extend([lngLat.lng, lngLat.lat]);
               
               setTimeout(() => {
-                element.classList.remove('animate-bounce');
-                element.style.filter = '';
-                element.style.transform = '';
+                element.classList.remove("animate-bounce");
+                element.style.filter = "";
+                element.style.transform = "";
               }, 5000);
             }
           });
@@ -436,10 +436,10 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
       initAudio();
     };
     
-    document.addEventListener('click', handleFirstClick, { once: true });
+    document.addEventListener("click", handleFirstClick, { once: true });
     
     return () => {
-      document.removeEventListener('click', handleFirstClick);
+      document.removeEventListener("click", handleFirstClick);
     };
   }, []);
 

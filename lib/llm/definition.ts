@@ -1,9 +1,9 @@
-import { Type, FunctionDeclaration } from '@google/genai';
+import { Type, FunctionDeclaration } from "@google/genai";
 
 export const functionDefinitions: FunctionDeclaration[] = [
   {
-    name: 'show_umkm_details',
-    description: 'Menampilkan detail UMKM dan membuka sidebar. Gunakan ketika user ingin melihat informasi lengkap UMKM.',
+    name: "show_umkm_details",
+    description: "Menampilkan detail UMKM dan membuka sidebar. Gunakan ketika user ingin melihat informasi lengkap UMKM.",
     parameters: {
       type: Type.OBJECT,
       required: ["umkm_id"],
@@ -20,8 +20,8 @@ export const functionDefinitions: FunctionDeclaration[] = [
     },
   },
   {
-    name: 'navigate_to_umkm',
-    description: 'Memulai navigasi ke UMKM tertentu. Gunakan ketika user minta rute atau arah ke UMKM.',
+    name: "navigate_to_umkm",
+    description: "Memulai navigasi ke UMKM tertentu. Gunakan ketika user minta rute atau arah ke UMKM.",
     parameters: {
       type: Type.OBJECT,
       required: ["umkm_id", "umkm_name", "coordinates"],
@@ -45,8 +45,8 @@ export const functionDefinitions: FunctionDeclaration[] = [
     },
   },
   {
-    name: 'highlight_umkm',
-    description: 'Highlight UMKM tertentu di peta dengan visual yang menonjol. Gunakan untuk menunjukkan rekomendasi atau hasil pencarian.',
+    name: "highlight_umkm",
+    description: "Highlight UMKM tertentu di peta dengan visual yang menonjol. Gunakan untuk menunjukkan rekomendasi atau hasil pencarian.",
     parameters: {
       type: Type.OBJECT,
       required: ["umkm_ids"],
@@ -67,7 +67,7 @@ export const functionDefinitions: FunctionDeclaration[] = [
   },
 ] as const;
 
-export type FunctionName = typeof functionDefinitions[number]['name'];
+export type FunctionName = typeof functionDefinitions[number]["name"];
 
 export interface FunctionCallResponse {
   success: boolean;

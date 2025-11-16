@@ -13,8 +13,8 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
       {
-        protocol : 'https',
-        hostname : 'xjmhgtobkazsfounxfjf.supabase.co',
+        protocol : "https",
+        hostname : "xjmhgtobkazsfounxfjf.supabase.co",
       }
     ],
   },
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({
-        'ws': 'commonjs ws'
+        "ws": "commonjs ws"
       });
     }
     return config;

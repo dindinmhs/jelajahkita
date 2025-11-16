@@ -22,10 +22,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
 const CoordinatePicker = dynamic(
-  () => import('../common/coordinat-picker'),
+  () => import("../common/coordinat-picker"),
   { 
     ssr: false,
     loading: () => (
@@ -978,7 +978,7 @@ const AddventureForm = () => {
       <div className="">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href={`/map`}>
+            <Link href={"/map"}>
               <button className="flex items-center gap-2 text-gray-700 hover:text-[#FF6B35] font-medium transition-all">
                 <ArrowLeft size={20} />
                 Kembali

@@ -13,7 +13,7 @@ interface UMKM {
   name: string;
   category: string;
   thumbnail_url: string | null;
-  distance_km: number;
+  distance_km?: number;
 }
 
 export default function NearbySidebar() {
@@ -188,7 +188,7 @@ export default function NearbySidebar() {
                             <div className="flex items-center gap-1 mt-2 bg-orange-50 rounded-full px-2 py-1 w-fit">
                               <Navigation2 className="text-[#FF6B35]" size={12} />
                               <span className="text-xs font-semibold text-[#FF6B35]">
-                                {umkm.distance_km.toFixed(2)} km
+                                {(umkm.distance_km ?? 0).toFixed(2)} km
                               </span>
                             </div>
                           </div>

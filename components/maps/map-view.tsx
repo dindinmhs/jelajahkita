@@ -451,7 +451,14 @@ export default function MapView({
       popup.addEventListener("mouseleave", hidePopup);
 
       el.addEventListener("click", () => {
-        setSelectedUmkm(umkm);
+        setSelectedUmkm({
+          id: umkm.id,
+          name: umkm.name,
+          category: umkm.category,
+          thumbnail_url: umkm.image || null,
+          lon: umkm.lon,
+          lat: umkm.lat,
+        });
       });
 
       const marker = new maplibregl.Marker({ element: el })

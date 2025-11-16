@@ -15,6 +15,7 @@ interface ChatRoom {
   last_message?: string;
   last_message_time?: string;
   unread_count?: number;
+  umkm_thumbnail: string | null;
 }
 
 interface ChatStore {

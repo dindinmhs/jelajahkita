@@ -112,7 +112,7 @@ export function FAQSection() {
     {
       question: "Bagaimana cara mendaftarkan bisnis UMKM saya?",
       answer:
-        'Mendaftarkan bisnis Anda sangat mudah! Klik tombol "Daftarkan Bisnismu" di halaman utama, isi formulir dengan informasi bisnis seperti nama, kategori, lokasi, dan foto produk. Setelah verifikasi, bisnis Anda akan langsung muncul di peta dan dapat ditemukan oleh ribuan pengguna Jelajahkita.',
+        "Mendaftarkan bisnis Anda sangat mudah! Klik tombol \"Daftarkan Bisnismu\" di halaman utama, isi formulir dengan informasi bisnis seperti nama, kategori, lokasi, dan foto produk. Setelah verifikasi, bisnis Anda akan langsung muncul di peta dan dapat ditemukan oleh ribuan pengguna Jelajahkita.",
     },
     {
       question: "Kategori UMKM apa saja yang tersedia di Jelajahkita?",

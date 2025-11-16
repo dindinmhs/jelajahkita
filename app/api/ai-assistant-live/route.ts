@@ -1,11 +1,11 @@
-import { GoogleGenAI, LiveServerMessage, MediaResolution, Modality, Session } from '@google/genai';
-import { functionDefinitions } from '@/lib/llm/definition';
+import { GoogleGenAI, LiveServerMessage, MediaResolution, Modality, Session } from "@google/genai";
+import { functionDefinitions } from "@/lib/llm/definition";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-if (typeof global.WebSocket === 'undefined') {
+if (typeof global.WebSocket === "undefined") {
   (global as any).WebSocket = WebSocket;
 }
 
@@ -42,7 +42,7 @@ const pendingRequests = new Map<string, {
 export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('sessionId') || Math.random().toString(36);
+    const sessionId = searchParams.get("sessionId") || Math.random().toString(36);
     
     const body = await request.json();
     const { query, imageBase64, ragResults, userLocation } = body;
@@ -59,13 +59,13 @@ export async function POST(request: Request) {
     return Response.json({ 
       success: true, 
       sessionId,
-      message: 'Request queued for streaming' 
+      message: "Request queued for streaming" 
     });
 
   } catch (error) {
-    console.error('❌ POST Error:', error);
+    console.error("❌ POST Error:", error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
@@ -74,17 +74,17 @@ export async function POST(request: Request) {
 // GET - Stream response
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const sessionId = searchParams.get('sessionId');
+  const sessionId = searchParams.get("sessionId");
 
   if (!sessionId) {
-    return Response.json({ error: 'Session ID required' }, { status: 400 });
+    return Response.json({ error: "Session ID required" }, { status: 400 });
   }
 
   const headers = {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
   };
 
   const encoder = new TextEncoder();
@@ -104,8 +104,8 @@ export async function GET(request: Request) {
 
         if (!requestData) {
           sendSSE(controller, encoder, { 
-            type: 'error', 
-            error: 'Request data not found' 
+            type: "error", 
+            error: "Request data not found" 
           });
           controller.close();
           return;
@@ -118,10 +118,10 @@ export async function GET(request: Request) {
 
         // Initialize AI session
         const ai = new GoogleGenAI({
-          apiKey: process.env.GEMINI_API_KEY || '',
+          apiKey: process.env.GEMINI_API_KEY || "",
         });
 
-        const model = 'models/gemini-2.0-flash-exp';
+        const model = "models/gemini-2.0-flash-exp";
         const tools = [{ functionDeclarations: functionDefinitions }];
 
         // ✅ FIX: Enable AUDIO modality
@@ -129,8 +129,8 @@ export async function GET(request: Request) {
           responseModalities: [Modality.AUDIO], // ✅ Changed from TEXT to AUDIO
           mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
           speechConfig: {
-            languageCode: 'id-ID',
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } }
+            languageCode: "id-ID",
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
           },
           tools,
           systemInstruction: buildSystemPrompt(ragResults, userLocation),
@@ -142,18 +142,18 @@ export async function GET(request: Request) {
           model,
           callbacks: {
             onopen: () => {
-              console.log('✅ Session opened');
-              sendSSE(controller, encoder, { type: 'connected' });
+              console.log("✅ Session opened");
+              sendSSE(controller, encoder, { type: "connected" });
             },
             onmessage: (message: LiveServerMessage) => {
               responseQueue.push(message);
             },
             onerror: (e: ErrorEvent) => {
-              console.error('❌ Error:', e.message);
-              sendSSE(controller, encoder, { type: 'error', error: e.message });
+              console.error("❌ Error:", e.message);
+              sendSSE(controller, encoder, { type: "error", error: e.message });
             },
             onclose: (e: CloseEvent) => {
-              console.log('🔒 Session closed:', e.reason);
+              console.log("🔒 Session closed:", e.reason);
             },
           },
           config: sessionConfig
@@ -171,21 +171,21 @@ export async function GET(request: Request) {
         
         await session.sendClientContent({ turns: [fullPrompt] });
 
-        console.log('📤 Prompt sent');
+        console.log("📤 Prompt sent");
 
         // Process messages
         await handleTurn(sessionId, controller, encoder);
 
         // Cleanup
-        sendSSE(controller, encoder, { type: 'complete' });
+        sendSSE(controller, encoder, { type: "complete" });
         session.close();
         activeSessions.delete(sessionId);
 
       } catch (error) {
-        console.error('❌ Error:', error);
+        console.error("❌ Error:", error);
         sendSSE(controller, encoder, { 
-          type: 'error', 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          type: "error", 
+          error: error instanceof Error ? error.message : "Unknown error" 
         });
       } finally {
         controller.close();
@@ -264,13 +264,13 @@ async function handleModelTurn(
     console.log(`🔧 Function calls: ${message.toolCall.functionCalls.length}`);
     
     const functionCalls = message.toolCall.functionCalls.map(fc => ({
-      name: fc.name ?? '',
+      name: fc.name ?? "",
       args: fc.args,
-      id: fc.id ?? ''
+      id: fc.id ?? ""
     }));
 
     sendSSE(controller, encoder, {
-      type: 'functionCalls',
+      type: "functionCalls",
       functionCalls: functionCalls
     });
 
@@ -279,7 +279,7 @@ async function handleModelTurn(
       functionResponses: message.toolCall.functionCalls.map(fc => ({
         id: fc.id,
         name: fc.name,
-        response: { success: true, message: 'Function executed on frontend' }
+        response: { success: true, message: "Function executed on frontend" }
       }))
     });
   }
@@ -289,23 +289,23 @@ async function handleModelTurn(
     for (const part of message.serverContent.modelTurn.parts) {
       // ✅ Handle audio chunks
       if (part?.inlineData) {
-        const audioData = part.inlineData.data ?? '';
+        const audioData = part.inlineData.data ?? "";
         
         if (audioData.length > 0) {
           // console.log('🎵 Streaming audio chunk, size:', audioData.length);
           sendSSE(controller, encoder, {
-            type: 'audioChunk',
+            type: "audioChunk",
             data: audioData,
-            mimeType: part.inlineData.mimeType ?? 'audio/pcm'
+            mimeType: part.inlineData.mimeType ?? "audio/pcm"
           });
         }
       }
 
       // ✅ Handle text (fallback)
       if (part?.text) {
-        console.log('💬 Text response:', part.text.substring(0, 100));
+        console.log("💬 Text response:", part.text.substring(0, 100));
         sendSSE(controller, encoder, {
-          type: 'text',
+          type: "text",
           text: part.text
         });
       }
@@ -320,7 +320,7 @@ function sendSSE(controller: ReadableStreamDefaultController, encoder: TextEncod
     const sseData = `data: ${JSON.stringify(data)}\n\n`;
     controller.enqueue(encoder.encode(sseData));
   } catch (error) {
-    console.log('⚠️ SSE Error:', error);
+    console.log("⚠️ SSE Error:", error);
   }
 }
 
@@ -329,7 +329,7 @@ function buildRAGContext(ragResults?: RAGResult[]): string {
     return "Tidak ada data UMKM yang relevan ditemukan.";
   }
   
-  let context = `Data UMKM yang relevan berdasarkan pencarian:\n\n`;
+  let context = "Data UMKM yang relevan berdasarkan pencarian:\n\n";
   
   ragResults.forEach((result, index) => {
     context += `${index + 1}. **${result.name}**\n`;

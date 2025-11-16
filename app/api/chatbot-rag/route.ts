@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { GoogleAuth } from 'google-auth-library';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { GoogleAuth } from "google-auth-library";
 
 interface UMKMResult {
   umkm_id: string;
@@ -20,21 +20,21 @@ interface UMKMResult {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const query = formData.get('query') as string;
-    const imageFile = formData.get('image') as File | null;
+    const query = formData.get("query") as string;
+    const imageFile = formData.get("image") as File | null;
 
     if (!query) {
       return NextResponse.json(
-        { error: 'Query is required' },
+        { error: "Query is required" },
         { status: 400 }
       );
     }
 
     // Generate embeddings
     const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
       credentials: JSON.parse(
-        process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ?? ''
+        process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ?? ""
       )
     });
 
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     const accessToken = await authClient.getAccessToken();
 
     const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-    const location = 'us-central1';
-    const model = 'multimodalembedding@001';
+    const location = "us-central1";
+    const model = "multimodalembedding@001";
 
     const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     if (imageFile) {
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      imageBase64 = buffer.toString('base64');
+      imageBase64 = buffer.toString("base64");
     }
 
     // Generate embeddings
@@ -73,16 +73,16 @@ export async function POST(request: NextRequest) {
     };
 
     const embeddingResponse = await fetch(endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${accessToken.token}`,
-        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${accessToken.token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
     });
 
     if (!embeddingResponse.ok) {
-      throw new Error('Failed to generate embeddings');
+      throw new Error("Failed to generate embeddings");
     }
 
     const embeddingData = await embeddingResponse.json();
@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
 
     // Search similar UMKM using RPC function
     const supabase = createClient();
-    const searchMode = imageFile ? 'multimodal' : 'text';
+    const searchMode = imageFile ? "multimodal" : "text";
 
     const { data: ragResults, error: ragError } = await (await supabase).rpc(
-      'search_similar_umkm',
+      "search_similar_umkm",
       {
         query_text_embedding: textEmbedding,
         query_image_embedding: imageEmbedding || null,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (ragError) {
-      console.error('RAG search error:', ragError);
+      console.error("RAG search error:", ragError);
       throw ragError;
     }
 
@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Chatbot RAG Error:', error);
+    console.error("❌ Chatbot RAG Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
