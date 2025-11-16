@@ -87,7 +87,7 @@ export function HeroSection() {
                 : "opacity-0 translate-y-8"
             }`}
           >
-            <Link href="/protected">
+            <Link href="/map">
               <button className="flex min-w-[160px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#FF6B35] text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#FF6B35]/90 transition-colors shadow-md">
                 <span className="truncate">Jelajahi UMKM Terdekat</span>
               </button>

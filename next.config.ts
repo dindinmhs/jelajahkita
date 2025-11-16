@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        'ws': 'commonjs ws'
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

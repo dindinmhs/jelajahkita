@@ -22,7 +22,7 @@ export function CTASection() {
               biaya tersembunyi.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/auth/sign-up">
+              <Link href="/map">
                 <button className="w-full sm:w-auto bg-[#FF6B35] text-white border-2 border-[#FF6B35] px-8 py-3.5 rounded-full text-base font-semibold hover:bg-[#ff8c42] hover:border-[#ff8c42] transition-all duration-300 hover:-translate-y-0.5 shadow-md hover:shadow-lg">
                   Mulai Sekarang
                 </button>

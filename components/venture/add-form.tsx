@@ -13,8 +13,8 @@ import {
   MapPin,
   Trash2,
   Star,
+  Navigation,
 } from "lucide-react";
-import CoordinatePicker from "../common/coordinat-picker";
 import axios from "axios";
 import Image from "next/image";
 import { useUserStore } from "@/lib/store/user-store";
@@ -22,9 +22,24 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+
+const CoordinatePicker = dynamic(
+  () => import('../common/coordinat-picker'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-3 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Memuat peta...</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface FormData {
-  // Step 1
   name: string;
   description: string;
   category: string;
@@ -33,23 +48,17 @@ interface FormData {
   address: string;
   media: File[];
   thumbnail: number;
-
-  // Step 2
   operational_hours: {
     day: string;
-    dayNumber: number; // 1-7
+    dayNumber: number;
     open: string;
     close: string;
     status: string;
   }[];
-
-  // Step 3
   links: {
     platform: string;
     url: string;
   }[];
-
-  // Step 4
   catalog: {
     name: string;
     price: number;
@@ -63,6 +72,7 @@ const AddventureForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
@@ -129,7 +139,54 @@ const AddventureForm = () => {
 
   const categories = ["Kuliner", "Fashion", "Jasa", "Lainnya"];
 
-  // Handle coordinate change
+  // Get current location on mount
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = async () => {
+    setIsGettingLocation(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          setFormData((prev) => ({ ...prev, lat, lon }));
+          
+          // Fetch address
+          try {
+            const response = await axios.get(
+              `/api/geocoding?lat=${lat}&lon=${lon}`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.data && response.data.display_name) {
+              setFormData((prev) => ({
+                ...prev,
+                address: response.data.display_name,
+              }));
+            }
+          } catch (error) {
+            console.error("Error fetching address:", error);
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setIsGettingLocation(false);
+        }
+      );
+    } else {
+      setIsGettingLocation(false);
+    }
+  };
+
   const handleCoordinateChange = async (coords: [number, number]) => {
     const [lat, lon] = coords;
     setFormData((prev) => ({ ...prev, lat, lon }));
@@ -152,7 +209,6 @@ const AddventureForm = () => {
     }
   };
 
-  // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (formData.media.length + files.length > 3) {
@@ -162,7 +218,6 @@ const AddventureForm = () => {
     setFormData((prev) => ({ ...prev, media: [...prev.media, ...files] }));
   };
 
-  // Remove media
   const removeMedia = (index: number) => {
     setFormData((prev) => ({
       ...prev,
@@ -176,7 +231,6 @@ const AddventureForm = () => {
     }));
   };
 
-  // Handle operational hours
   const updateOperationalHour = (
     index: number,
     field: string,
@@ -190,7 +244,6 @@ const AddventureForm = () => {
     }));
   };
 
-  // Handle links
   const addLink = () => {
     setFormData((prev) => ({
       ...prev,
@@ -214,7 +267,6 @@ const AddventureForm = () => {
     }));
   };
 
-  // Handle catalog
   const addCatalog = () => {
     setFormData((prev) => ({
       ...prev,
@@ -252,11 +304,54 @@ const AddventureForm = () => {
     }
   };
 
-  // Handle submit
+  // Validation functions
+  const isStep1Valid = () => {
+    return (
+      formData.name.trim() !== "" &&
+      formData.description.trim() !== "" &&
+      formData.category !== "" &&
+      formData.address.trim() !== "" &&
+      formData.media.length > 0
+    );
+  };
+
+  const isStep2Valid = () => {
+    return true; // Operational hours always have default values
+  };
+
+  const isStep3Valid = () => {
+    // Links are optional, or all must be complete if any exist
+    if (formData.links.length === 0) return true;
+    return formData.links.every(
+      (link) => link.platform.trim() !== "" && link.url.trim() !== ""
+    );
+  };
+
+  const isStep4Valid = () => {
+    // Catalog is optional, or all must be complete if any exist
+    if (formData.catalog.length === 0) return true;
+    return formData.catalog.every(
+      (item) => item.name.trim() !== "" && item.price > 0
+    );
+  };
+
+  const canProceedToNextStep = () => {
+    switch (currentStep) {
+      case 1:
+        return isStep1Valid();
+      case 2:
+        return isStep2Valid();
+      case 3:
+        return isStep3Valid();
+      case 4:
+        return isStep4Valid();
+      default:
+        return false;
+    }
+  };
+
   const handleSubmit = async () => {
-    console.log(formData);
     if (!user) {
-      alert("Anda harus login terlebih dahulu!");
       return;
     }
 
@@ -267,7 +362,7 @@ const AddventureForm = () => {
       // 1. Upload media UMKM ke storage
       const mediaUrls: string[] = [];
       let thumbnailFile: File | null = null;
-      
+
       for (let i = 0; i < formData.media.length; i++) {
         const file = formData.media[i];
         const fileName = `${Date.now()}_${i}_${file.name}`;
@@ -282,8 +377,7 @@ const AddventureForm = () => {
         } = supabase.storage.from("umkm-media").getPublicUrl(fileName);
 
         mediaUrls.push(publicUrl);
-        
-        // Save thumbnail file
+
         if (i === formData.thumbnail) {
           thumbnailFile = file;
         }
@@ -294,15 +388,13 @@ const AddventureForm = () => {
       let imageEmbedding = null;
 
       try {
-        // Convert thumbnail image to base64
         let imageBase64 = undefined;
         if (thumbnailFile) {
           const reader = new FileReader();
           imageBase64 = await new Promise<string>((resolve, reject) => {
             reader.onloadend = () => {
               const base64String = reader.result as string;
-              // Remove data:image/...;base64, prefix
-              const base64Data = base64String.split(',')[1];
+              const base64Data = base64String.split(",")[1];
               resolve(base64Data);
             };
             reader.onerror = reject;
@@ -310,7 +402,6 @@ const AddventureForm = () => {
           });
         }
 
-        // Combine text for embedding
         const combinedText = [
           formData.name,
           formData.category,
@@ -320,7 +411,6 @@ const AddventureForm = () => {
           .filter(Boolean)
           .join(" ");
 
-        // Call embedding API
         const embeddingResponse = await fetch("/api/embeddings", {
           method: "POST",
           headers: {
@@ -332,16 +422,13 @@ const AddventureForm = () => {
           }),
         });
 
-        if (!embeddingResponse.ok) {
-          console.error("Failed to generate embeddings");
-        } else {
+        if (embeddingResponse.ok) {
           const embeddingData = await embeddingResponse.json();
           textEmbedding = embeddingData.textEmbedding;
           imageEmbedding = embeddingData.imageEmbedding;
         }
       } catch (embeddingError) {
         console.error("Error generating embeddings:", embeddingError);
-        // Continue without embeddings
       }
 
       // 3. Insert data UMKM with embeddings
@@ -378,10 +465,10 @@ const AddventureForm = () => {
 
       if (mediaError) throw mediaError;
 
-      // 5. Insert operational hours (dengan day sebagai numerik)
+      // 5. Insert operational hours
       const operationalInserts = formData.operational_hours.map((hour) => ({
         umkm_id: umkmId,
-        day: hour.dayNumber, // Simpan sebagai angka 1-7
+        day: hour.dayNumber,
         open: hour.status === "open" ? hour.open : null,
         close: hour.status === "open" ? hour.close : null,
         status: hour.status,
@@ -395,25 +482,30 @@ const AddventureForm = () => {
 
       // 6. Insert links
       if (formData.links.length > 0) {
-        const linkInserts = formData.links.map((link) => ({
-          umkm_id: umkmId,
-          platform: link.platform,
-          url: link.url,
-        }));
+        const linkInserts = formData.links
+          .filter((link) => link.platform && link.url)
+          .map((link) => ({
+            umkm_id: umkmId,
+            platform: link.platform,
+            url: link.url,
+          }));
 
-        const { error: linkError } = await supabase
-          .from("umkm_links")
-          .insert(linkInserts);
+        if (linkInserts.length > 0) {
+          const { error: linkError } = await supabase
+            .from("umkm_links")
+            .insert(linkInserts);
 
-        if (linkError) throw linkError;
+          if (linkError) throw linkError;
+        }
       }
 
       // 7. Upload product images dan insert catalog
       if (formData.catalog.length > 0) {
         for (const item of formData.catalog) {
+          if (!item.name || item.price <= 0) continue;
+
           let imageUrl = "";
 
-          // Upload image product jika ada
           if (item.image) {
             const fileName = `${Date.now()}_${item.image.name}`;
             const { data: uploadData, error: uploadError } =
@@ -430,7 +522,6 @@ const AddventureForm = () => {
             imageUrl = publicUrl;
           }
 
-          // Insert catalog
           const { error: catalogError } = await supabase
             .from("catalog")
             .insert({
@@ -444,12 +535,6 @@ const AddventureForm = () => {
         }
       }
 
-      alert("Data berhasil disimpan!");
-      console.log("UMKM ID:", umkmId);
-      console.log("Text Embedding generated:", !!textEmbedding);
-      console.log("Image Embedding generated:", !!imageEmbedding);
-
-      // Reset form atau redirect
       router.push("/map");
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -465,7 +550,6 @@ const AddventureForm = () => {
       setUser(data.user ?? null);
     });
 
-    // Listen perubahan auth
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -477,7 +561,6 @@ const AddventureForm = () => {
     };
   }, [setUser]);
 
-  // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -487,10 +570,9 @@ const AddventureForm = () => {
               Informasi Dasar
             </h2>
 
-            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Bisnis
+                Nama Bisnis <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -503,10 +585,9 @@ const AddventureForm = () => {
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori
+                Kategori <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <button
@@ -523,7 +604,6 @@ const AddventureForm = () => {
                   size={20}
                 />
 
-                {/* Dropdown Menu */}
                 <motion.div
                   initial={false}
                   animate={{
@@ -552,10 +632,9 @@ const AddventureForm = () => {
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deskripsi
+                Deskripsi <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.description}
@@ -571,12 +650,20 @@ const AddventureForm = () => {
               />
             </div>
 
-            {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lokasi
+                Lokasi <span className="text-red-500">*</span>
               </label>
               <div className="mb-2">
+                <button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="mb-3 flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Navigation size={16} />
+                  {isGettingLocation ? "Mendapatkan lokasi..." : "Gunakan Lokasi Saat Ini"}
+                </button>
                 <CoordinatePicker
                   value={[formData.lat, formData.lon]}
                   onChange={handleCoordinateChange}
@@ -593,10 +680,9 @@ const AddventureForm = () => {
               />
             </div>
 
-            {/* Media Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Foto
+                Foto <span className="text-red-500">*</span>
               </label>
 
               <input
@@ -608,7 +694,7 @@ const AddventureForm = () => {
                 id="media-upload"
               />
 
-              <div className="flex gap-4 items-start">
+              <div className="flex gap-4 items-start flex-wrap">
                 {formData.media.slice(0, 2).map((file, index) => (
                   <div key={index} className="relative group">
                     <div className="relative w-32 h-32 rounded-3xl overflow-hidden border border-gray-200 bg-gray-50">
@@ -687,7 +773,6 @@ const AddventureForm = () => {
                     </span>
                   </div>
 
-                  {/* Toggle Switch */}
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -890,7 +975,6 @@ const AddventureForm = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -905,12 +989,9 @@ const AddventureForm = () => {
         </div>
       </div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress Steps */}
         <div className="mb-8">
           <div className="relative">
-            {/* Steps Container */}
             <div className="flex items-start justify-between relative">
-              {/* Steps */}
               {[
                 { num: 1, label: "Informasi Dasar" },
                 { num: 2, label: "Jam Operasional" },
@@ -919,7 +1000,6 @@ const AddventureForm = () => {
               ].map((step, index) => (
                 <React.Fragment key={step.num}>
                   <div className="flex flex-col items-center relative z-10">
-                    {/* Circle */}
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                         step.num === currentStep
@@ -932,7 +1012,6 @@ const AddventureForm = () => {
                       {step.num}
                     </div>
 
-                    {/* Label */}
                     <span
                       className={`mt-2 text-xs font-medium transition-colors whitespace-nowrap ${
                         step.num <= currentStep
@@ -944,7 +1023,6 @@ const AddventureForm = () => {
                     </span>
                   </div>
 
-                  {/* Line after circle (except for last step) */}
                   {index < 3 && (
                     <div
                       className="flex-1 flex items-center relative"
@@ -969,7 +1047,6 @@ const AddventureForm = () => {
           </div>
         </div>
 
-        {/* Form Content */}
         <motion.div
           key={currentStep}
           initial={{ opacity: 0, x: 20 }}
@@ -980,7 +1057,6 @@ const AddventureForm = () => {
         >
           {renderStepContent()}
 
-          {/* Navigation Buttons - Inside Card */}
           <div className="flex justify-between pt-6 mt-6 border-t border-gray-200">
             <button
               type="button"
@@ -996,7 +1072,8 @@ const AddventureForm = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
-                className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-xl hover:bg-[#ff5722] transition-all"
+                disabled={!canProceedToNextStep()}
+                className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-xl hover:bg-[#ff5722] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Selanjutnya
                 <ChevronRight size={20} />
@@ -1005,7 +1082,7 @@ const AddventureForm = () => {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || !canProceedToNextStep()}
                 className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-xl hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? (

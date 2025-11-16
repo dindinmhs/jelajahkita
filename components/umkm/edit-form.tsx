@@ -10,14 +10,30 @@ import {
   ArrowLeft,
   Trash2,
   Star,
+  Navigation,
 } from "lucide-react";
-import CoordinatePicker from "../common/coordinat-picker";
 import axios from "axios";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+
+const CoordinatePicker = dynamic(
+  () => import('../common/coordinat-picker'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-3 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Memuat peta...</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface Media {
   id: string;
@@ -104,6 +120,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: umkmData.name,
     description: umkmData.description,
@@ -186,6 +203,49 @@ export default function EditForm({ umkmData }: EditFormProps) {
       }));
     }
   }, []);
+
+  const getCurrentLocation = async () => {
+    setIsGettingLocation(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          setFormData((prev) => ({ ...prev, lat, lon }));
+          
+          // Fetch address
+          try {
+            const response = await axios.get(
+              `/api/geocoding?lat=${lat}&lon=${lon}`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.data && response.data.display_name) {
+              setFormData((prev) => ({
+                ...prev,
+                address: response.data.display_name,
+              }));
+            }
+          } catch (error) {
+            console.error("Error fetching address:", error);
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setIsGettingLocation(false);
+        }
+      );
+    } else {
+      setIsGettingLocation(false);
+    }
+  };
 
   const handleCoordinateChange = async (coords: [number, number]) => {
     const [lat, lon] = coords;
@@ -323,6 +383,50 @@ export default function EditForm({ umkmData }: EditFormProps) {
     }
   };
 
+  // Validation functions
+  const isStep1Valid = () => {
+    return (
+      formData.name.trim() !== "" &&
+      formData.description.trim() !== "" &&
+      formData.category !== "" &&
+      formData.address.trim() !== "" &&
+      formData.media.length > 0
+    );
+  };
+
+  const isStep2Valid = () => {
+    return true;
+  };
+
+  const isStep3Valid = () => {
+    if (formData.links.length === 0) return true;
+    return formData.links.every(
+      (link) => link.platform.trim() !== "" && link.url.trim() !== ""
+    );
+  };
+
+  const isStep4Valid = () => {
+    if (formData.catalog.length === 0) return true;
+    return formData.catalog.every(
+      (item) => item.name.trim() !== "" && item.price > 0
+    );
+  };
+
+  const canProceedToNextStep = () => {
+    switch (currentStep) {
+      case 1:
+        return isStep1Valid();
+      case 2:
+        return isStep2Valid();
+      case 3:
+        return isStep3Valid();
+      case 4:
+        return isStep4Valid();
+      default:
+        return false;
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     const supabase = createClient();
@@ -345,23 +449,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
           .in("id", formData.deletedCatalog);
       }
 
-      // 2. Update UMKM basic info
-      const { error: umkmError } = await supabase
-        .from("umkm")
-        .update({
-          name: formData.name,
-          description: formData.description,
-          address: formData.address,
-          lat: formData.lat,
-          lon: formData.lon,
-          category: formData.category,
-          no_telp: formData.no_telp,
-        })
-        .eq("id", umkmData.id);
-
-      if (umkmError) throw umkmError;
-
-      // 3. Handle media uploads
+      // 2. Handle media uploads
       const newMediaFiles = formData.media.filter((m) => m instanceof File);
       const existingMedia = formData.media.filter(
         (m): m is { id: string; url: string } =>
@@ -369,6 +457,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
       );
 
       const mediaUrls: string[] = existingMedia.map((m) => m.url);
+      let thumbnailFile: File | null = null;
 
       for (let i = 0; i < newMediaFiles.length; i++) {
         const file = newMediaFiles[i] as File;
@@ -384,9 +473,91 @@ export default function EditForm({ umkmData }: EditFormProps) {
         } = supabase.storage.from("umkm-media").getPublicUrl(fileName);
 
         mediaUrls.push(publicUrl);
+
+        if (i + existingMedia.length === formData.thumbnail) {
+          thumbnailFile = file;
+        }
       }
 
-      // Update thumbnail status for all media
+      // If thumbnail is from existing media, fetch it
+      if (!thumbnailFile && formData.thumbnail < existingMedia.length) {
+        const thumbnailUrl = existingMedia[formData.thumbnail].url;
+        try {
+          const response = await fetch(thumbnailUrl);
+          const blob = await response.blob();
+          thumbnailFile = new File([blob], "thumbnail.jpg", { type: blob.type });
+        } catch (error) {
+          console.error("Error fetching existing thumbnail:", error);
+        }
+      }
+
+      // 3. Generate embeddings
+      let textEmbedding = null;
+      let imageEmbedding = null;
+
+      try {
+        let imageBase64 = undefined;
+        if (thumbnailFile) {
+          const reader = new FileReader();
+          imageBase64 = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => {
+              const base64String = reader.result as string;
+              const base64Data = base64String.split(",")[1];
+              resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(thumbnailFile);
+          });
+        }
+
+        const combinedText = [
+          formData.name,
+          formData.category,
+          formData.description,
+          formData.address,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        const embeddingResponse = await fetch("/api/embeddings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: combinedText,
+            imageBase64: imageBase64,
+          }),
+        });
+
+        if (embeddingResponse.ok) {
+          const embeddingData = await embeddingResponse.json();
+          textEmbedding = embeddingData.textEmbedding;
+          imageEmbedding = embeddingData.imageEmbedding;
+        }
+      } catch (embeddingError) {
+        console.error("Error generating embeddings:", embeddingError);
+      }
+
+      // 4. Update UMKM basic info with embeddings
+      const { error: umkmError } = await supabase
+        .from("umkm")
+        .update({
+          name: formData.name,
+          description: formData.description,
+          address: formData.address,
+          lat: formData.lat,
+          lon: formData.lon,
+          category: formData.category,
+          no_telp: formData.no_telp,
+          text_embedding: textEmbedding,
+          image_embedding: imageEmbedding,
+        })
+        .eq("id", umkmData.id);
+
+      if (umkmError) throw umkmError;
+
+      // 5. Update thumbnail status for all media
       await supabase
         .from("media")
         .update({ is_thumbnail: false })
@@ -413,7 +584,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
           .eq("id", existingMedia[formData.thumbnail].id);
       }
 
-      // 4. Update operational hours
+      // 6. Update operational hours
       await supabase
         .from("operational_hours")
         .delete()
@@ -429,7 +600,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
       await supabase.from("operational_hours").insert(operationalInserts);
 
-      // 5. Handle links
+      // 7. Handle links
       const newLinks = formData.links.filter(
         (link) => !link.id && link.platform && link.url
       );
@@ -453,7 +624,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
         }
       }
 
-      // 6. Handle catalog
+      // 8. Handle catalog
       for (const item of formData.catalog) {
         let imageUrl = typeof item.image === "string" ? item.image : "";
 
@@ -493,11 +664,9 @@ export default function EditForm({ umkmData }: EditFormProps) {
         }
       }
 
-      alert("UMKM berhasil diperbarui!");
       router.push(`/umkm/${umkmData.id}`);
     } catch (error) {
       console.error("Error updating UMKM:", error);
-      alert("Gagal memperbarui UMKM. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -511,33 +680,13 @@ export default function EditForm({ umkmData }: EditFormProps) {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          formData.name &&
-          formData.description &&
-          formData.category &&
-          formData.media.length > 0
-        );
-      case 2:
-        return true;
-      case 3:
-        return true;
-      case 4:
-        return true;
-      default:
-        return false;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href={`/umkm`}>
+            <Link href={`/umkm/${umkmData.id}`}>
               <button className="flex items-center gap-2 text-gray-700 hover:text-[#FF6B35] font-medium transition-all">
                 <ArrowLeft size={20} />
                 Kembali
@@ -552,9 +701,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="relative">
-            {/* Steps Container */}
             <div className="flex items-start justify-between relative">
-              {/* Steps */}
               {[
                 { num: 1, label: "Informasi Dasar" },
                 { num: 2, label: "Jam Operasional" },
@@ -563,7 +710,6 @@ export default function EditForm({ umkmData }: EditFormProps) {
               ].map((step, index) => (
                 <React.Fragment key={step.num}>
                   <div className="flex flex-col items-center relative z-10">
-                    {/* Circle */}
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                         step.num === currentStep
@@ -576,7 +722,6 @@ export default function EditForm({ umkmData }: EditFormProps) {
                       {step.num}
                     </div>
 
-                    {/* Label */}
                     <span
                       className={`mt-2 text-xs font-medium transition-colors whitespace-nowrap ${
                         step.num <= currentStep
@@ -588,7 +733,6 @@ export default function EditForm({ umkmData }: EditFormProps) {
                     </span>
                   </div>
 
-                  {/* Line after circle (except for last step) */}
                   {index < 3 && (
                     <div
                       className="flex-1 flex items-center relative"
@@ -631,7 +775,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Bisnis
+                  Nama Bisnis <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -646,7 +790,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kategori
+                  Kategori <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <button
@@ -665,7 +809,6 @@ export default function EditForm({ umkmData }: EditFormProps) {
                     size={20}
                   />
 
-                  {/* Dropdown Menu */}
                   <motion.div
                     initial={false}
                     animate={{
@@ -696,7 +839,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Deskripsi
+                  Deskripsi <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={formData.description}
@@ -726,9 +869,18 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lokasi
+                  Lokasi <span className="text-red-500">*</span>
                 </label>
                 <div className="mb-2">
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    disabled={isGettingLocation}
+                    className="mb-3 flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Navigation size={16} />
+                    {isGettingLocation ? "Mendapatkan lokasi..." : "Gunakan Lokasi Saat Ini"}
+                  </button>
                   <CoordinatePicker
                     value={[formData.lat, formData.lon]}
                     onChange={handleCoordinateChange}
@@ -747,7 +899,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Foto
+                  Foto <span className="text-red-500">*</span>
                 </label>
 
                 <input
@@ -849,7 +1001,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6B35]"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6B35]"></div>
                     </label>
                     {hour.status === "open" && (
                       <>
@@ -859,7 +1011,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
                           onChange={(e) =>
                             updateOperationalHour(index, "open", e.target.value)
                           }
-                          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+                          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
                         />
                         <span className="text-gray-400">-</span>
                         <input
@@ -872,7 +1024,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
                               e.target.value
                             )
                           }
-                          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#FF6B35] focus:border-transparent"
+                          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-0 focus:border-[#FF6B35] transition-all"
                         />
                       </>
                     )}
@@ -1026,6 +1178,16 @@ export default function EditForm({ umkmData }: EditFormProps) {
                             />
                           </div>
                         )}
+                        {item.image instanceof File && (
+                          <div className="relative h-32 w-32 mb-2 rounded-lg overflow-hidden">
+                            <Image
+                              src={URL.createObjectURL(item.image)}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
                         <input
                           type="file"
                           accept="image/*"
@@ -1040,7 +1202,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
             </div>
           )}
 
-          {/* Navigation Buttons - Inside Card */}
+          {/* Navigation Buttons */}
           <div className="flex justify-between pt-6 mt-6 border-t border-gray-200">
             <button
               onClick={prevStep}
@@ -1055,7 +1217,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
             {currentStep < 4 ? (
               <button
                 onClick={nextStep}
-                disabled={!isStepValid()}
+                disabled={!canProceedToNextStep()}
                 type="button"
                 className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-full hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
@@ -1065,7 +1227,7 @@ export default function EditForm({ umkmData }: EditFormProps) {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={loading || !isStepValid()}
+                disabled={loading || !canProceedToNextStep()}
                 type="button"
                 className="flex items-center gap-2 px-6 py-3 bg-[#FF6B35] text-white rounded-full hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
