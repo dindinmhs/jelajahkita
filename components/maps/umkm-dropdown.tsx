@@ -98,15 +98,29 @@ export default function UmkmDropdown() {
 
   return (
     <div className="relative">
+      {/* Desktop Button - Full */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="hidden sm:flex items-center gap-2 bg-[#FF6B35] hover:bg-[#ff8c42] text-white px-4 py-3 rounded-full transition-colors"
+        className="hidden sm:flex items-center gap-2 bg-[#FF6B35] hover:bg-[#ff8c42] text-white px-4 py-2.5 rounded-full transition-colors"
       >
         <Store size={16} />
         <span className="font-medium text-sm">UMKM Saya</span>
         {totalCount > 0 && (
           <span className="bg-white text-[#FF6B35] text-xs font-bold px-2 py-0.5 rounded-full">
             {totalCount}
+          </span>
+        )}
+      </button>
+
+      {/* Mobile Button - Icon Only */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="sm:hidden relative p-2.5 bg-[#FF6B35] hover:bg-[#ff8c42] text-white rounded-full transition-colors"
+      >
+        <Store size={18} />
+        {totalCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-white text-[#FF6B35] text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+            {totalCount > 9 ? "9+" : totalCount}
           </span>
         )}
       </button>
