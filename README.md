@@ -1,109 +1,175 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+<h1 align="center">🗺️ JelajahKita</h1>
 
 <p align="center">
- The fastest way to build apps with Next.js and Supabase
+  Platform Pemetaan & Eksplorasi UMKM Lokal Indonesia
 </p>
 
 <p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
+  <a href="#tentang-aplikasi"><strong>Tentang</strong></a> ·
+  <a href="#fitur-utama"><strong>Fitur</strong></a> ·
+  <a href="#teknologi"><strong>Teknologi</strong></a> ·
+  <a href="#instalasi"><strong>Instalasi</strong></a> ·
+  <a href="#struktur-project"><strong>Struktur</strong></a> ·
+  <a href="#kontribusi"><strong>Kontribusi</strong></a>
 </p>
+
 <br/>
 
-## Features
+## 📖 Tentang Aplikasi
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+**JelajahKita** adalah platform web interaktif yang membantu masyarakat menemukan dan mengeksplorasi Usaha Mikro Kecil dan Menengah (UMKM) di sekitar mereka. Dengan teknologi peta interaktif dan AI Assistant, JelajahKita mempermudah pencarian UMKM lokal berdasarkan lokasi, kategori, dan preferensi pengguna.
 
-## Demo
+### 🎯 Tujuan
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+- Meningkatkan visibilitas UMKM lokal
+- Mempermudah masyarakat menemukan produk dan layanan UMKM terdekat
+- Mendukung digitalisasi dan pertumbuhan UMKM Indonesia
+- Membangun ekosistem ekonomi lokal yang lebih kuat
 
-## Deploy to Vercel
+---
 
-Vercel deployment will guide you through creating a Supabase account and project.
+## ✨ Fitur Utama
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+### 🗺️ **Interactive Map**
+- Peta interaktif berbasis MapLibre GL dengan multiple viewing modes (Default, 3D, Satellite)
+- Real-time location tracking dengan marker user
+- Clustering untuk visualisasi UMKM yang lebih baik
+- Filter berdasarkan kategori (Kuliner, Fashion, Kerajinan, Jasa, dll)
+- Search & filter UMKM dengan autocomplete
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+### 🤖 **AI Assistant**
+- AI Chatbot dengan kemampuan multimodal (text + image search)
+- RAG (Retrieval-Augmented Generation) untuk rekomendasi UMKM yang akurat
+- Function calling untuk navigasi otomatis dan detail UMKM
+- Image-based search untuk mencari UMKM berdasarkan foto produk
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+### 🏪 **UMKM Management**
+- Dashboard lengkap untuk pengelolaan UMKM
+- Multi-step form untuk menambah/edit UMKM
+- Upload foto produk dan galeri UMKM
+- Manajemen katalog produk dengan harga
+- Pengaturan jam operasional per hari
+- Integrasi link media sosial (Instagram, Facebook, Website)
+- Coordinate picker untuk lokasi akurat
+- Automatic address lookup dengan reverse geocoding
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+### 🧭 **Navigation System**
+- Turn-by-turn navigation dengan visualisasi rute
+- Perhitungan jarak dan estimasi waktu
+- Real-time route tracking
+- Clear route instructions
 
-## Clone and run locally
+### 💬 **Chat & Review System**
+- Direct messaging antara user dan pemilik UMKM
+- Real-time chat dengan persistent history
+- Review & rating system dengan bintang 1-5
+- Statistik rating dengan distribusi bar chart
+- Upload foto pada review
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+### 👤 **User Profile**
+- Manajemen profil pengguna lengkap
+- View dan edit informasi pribadi
+- Daftar UMKM yang dimiliki
+- History review dan chat
 
-2. Create a Next.js app using the Supabase Starter template npx command
+### 🎨 **Modern UI/UX**
+- Responsive design untuk mobile dan desktop
+- Smooth animations dengan Framer Motion
+- Bottom sheet style untuk mobile
+- Draggable chat popup untuk desktop
+- Dark mode ready components
+- Loading states dan skeleton loaders
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+---
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+## 🛠️ Teknologi
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+### Frontend
+- **Next.js 15** - React framework dengan App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **Zustand** - State management
+- **MapLibre GL** - Interactive maps
+- **Lucide React** - Icon library
 
-3. Use `cd` to change into the app's directory
+### Backend & Database
+- **Supabase** - Backend as a Service
+  - PostgreSQL Database dengan pgvector extension
+  - Authentication & Authorization
+  - Storage untuk media files
+  - Real-time subscriptions
+  - Row Level Security (RLS)
 
-   ```bash
-   cd with-supabase-app
-   ```
+### AI & Machine Learning
+- **Gemini** - AI Assistant & Chat
+- **Vertex** - Image & text embeddings untuk RAG
+- **Vector Search** - Semantic search dengan pgvector
 
-4. Rename `.env.example` to `.env.local` and update the following:
+### APIs & Services
+- **OpenRouteService** - Routing & directions
+- **Nominatim** - Reverse geocoding
+- **OpenFreeMap** - Base map tiles
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+---
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+## 🗺️ Navigasi Aplikasi
 
-5. You can now run the Next.js local development server:
+### Landing Page (`/`)
+- Hero section dengan CTA
+- Featured UMKM showcase
+- Interactive mini map preview
+- Search section
+- FAQ dan footer
 
-   ```bash
-   npm run dev
-   ```
+### Map Page (`/map`)
+- Interactive map sebagai main interface
+- Sidebar dengan nearby UMKM list
+- Search bar dengan filter kategori
+- UMKM detail sidebar
+- AI Chatbot floating button
+- Navigation controls
+- Chat popup untuk messaging
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+### Profile Page (`/profile`)
+- User information display & edit
+- List UMKM yang dimiliki
+- Logout functionality
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+### UMKM Pages
+- `/umkm` - List semua UMKM user
+- `/umkm/[id]` - Detail lengkap UMKM
+  - Overview, Products, Reviews, About tabs
+  - Gallery slider
+  - Review submission
+  - Contact & navigation buttons
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+### Add/Edit UMKM (`/usaha-baru`, `/umkm/[id]/edit`)
+- Multi-step form (4 steps):
+  1. Informasi Dasar (nama, kategori, deskripsi, lokasi, foto)
+  2. Jam Operasional
+  3. Media Sosial & Links
+  4. Produk & Katalog
+- Real-time validation
+- Image upload & preview
+- Coordinate picker dengan current location
 
-## Feedback and issues
+---
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+## 🔐 Authentication
 
-## More Supabase examples
+Aplikasi menggunakan Supabase Authentication dengan fitur:
+- Email/Password authentication
+- Email confirmation
+- Password reset via email
+- Protected routes dengan middleware
+- Session management dengan cookies
+- Row Level Security (RLS) di database
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+---
+
+## 👨‍💻 Developer
+
+Developed with ❤️ by **Ayam Pelung Cikutra**
+
+- GitHub: [@dindinmhs](https://github.com/dindinmhs)
