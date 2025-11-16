@@ -784,7 +784,7 @@ export default function MapView({
 
       {/* Navigation Info Card */}
       {isNavigating && destination && routeData && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl p-4 w-80 border border-gray-200">
+        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl p-4 w-80 border border-gray-200">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <h3 className="font-bold text-gray-900 mb-1">
@@ -861,35 +861,7 @@ export default function MapView({
           </div>
         </div>
       )}
-
-      {/* Filter Info Badge */}
-      {(selectedCategory !== "Semua" || searchQuery) && (
-        <div className="absolute top-20 left-6 z-50 bg-white rounded-lg shadow-lg p-3 max-w-xs">
-          <p className="text-sm text-gray-600">
-            Menampilkan{" "}
-            <span className="font-bold text-[#FF6B35]">
-              {filteredUmkmList.length}
-            </span>{" "}
-            UMKM
-            {selectedCategory !== "Semua" && (
-              <>
-                {" "}
-                dari kategori{" "}
-                <span className="font-semibold">{selectedCategory}</span>
-              </>
-            )}
-            {searchQuery && (
-              <>
-                {" "}
-                untuk pencarian{" "}
-                <span className="font-semibold">"{searchQuery}"</span>
-              </>
-            )}
-          </p>
-        </div>
-      )}
-
-      {!isNavigating && (
+      
         <div className="absolute bottom-10 right-6 z-40 flex flex-col gap-2">
           <button
             onClick={handleOpenChat}
@@ -955,7 +927,6 @@ export default function MapView({
             <Minus size={20} className="text-gray-700" />
           </button>
         </div>
-      )}
 
       <div ref={mapContainer} className="w-full h-full" />
       <ChatPopup />

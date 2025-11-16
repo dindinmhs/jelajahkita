@@ -1,5 +1,5 @@
 "use client";
-import { Search, Menu } from "lucide-react";
+import { Search, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthButton } from "../auth-button";
 import Image from "next/image";
@@ -15,6 +15,7 @@ const NavbarMap = () => {
     toggleSidebar,
     searchQuery,
     setSearchQuery,
+    isSidebarOpen, // ✅ Tambah ini
   } = useMapStore();
 
   const categories = [
@@ -39,11 +40,16 @@ const NavbarMap = () => {
           <div className="flex items-center justify-between gap-3">
             {/* Left Section - Menu & Logo */}
             <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md shadow-lg rounded-full px-4 py-2">
+              {/* ✅ Toggle button dengan icon dinamis */}
               <button
                 onClick={toggleSidebar}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-full transition-all"
               >
-                <Menu size={20} className="text-gray-700" />
+                {isSidebarOpen ? (
+                  <PanelLeftClose size={20} className="text-[#FF6B35]" />
+                ) : (
+                  <PanelLeftOpen size={20} className="text-gray-700" />
+                )}
               </button>
               <div
                 className="flex items-center gap-2 cursor-pointer"
@@ -81,7 +87,7 @@ const NavbarMap = () => {
             </div>
 
             {/* Right Section */}
-            <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md shadow-lg rounded-full px-3 py-2">
+            <div className="flex items-center gap-2 rounded-full px-3 py-2">
               <UmkmDropdown />
               <AuthButton />
             </div>
