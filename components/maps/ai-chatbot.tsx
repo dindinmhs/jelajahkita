@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, X, Loader2, ImageIcon, Volume2, VolumeX } from "lucide-react";
+import { Sparkles, Send, X, Loader2, ImageIcon, Volume2, VolumeX, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useMapStore } from "@/lib/store/useMapStore";
 import { useNavigationStore } from "@/lib/store/useNavigation";
@@ -47,6 +47,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
   const [error, setError] = useState<string | null>(null);
   const [aiResponse, setAiResponse] = useState<string>("");
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -60,6 +61,18 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
 
   const { userLocation, setSelectedUmkm, setSidebarView, setSidebarOpen } = useMapStore();
   const { startNavigation } = useNavigationStore();
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const initAudio = async () => {
     if (!audioContextRef.current) {
@@ -457,9 +470,247 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
     };
   }, []);
 
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Button */}
+        <motion.button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`${
+            isOpen 
+              ? "bg-red-500 hover:bg-red-600" 
+              : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 animate-pulse"
+          } shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all`}
+          title={isOpen ? "Tutup AI Assistant" : "Buka AI Assistant"}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {isOpen ? (
+            <X size={20} className="text-white" />
+          ) : (
+            <Sparkles size={20} className="text-white" />
+          )}
+        </motion.button>
+
+        {/* Mobile Bottom Sheet */}
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+                className="fixed inset-0 bg-black/30 z-[99998]"
+              />
+
+              {/* Bottom Sheet */}
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-[99999]"
+                style={{ height: "60vh", maxHeight: "600px" }}
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 rounded-t-3xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={20} className="text-white" />
+                      <div>
+                        <h3 className="font-bold text-white text-sm">AI Assistant</h3>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              connectionStatus === "connected"
+                                ? "bg-green-400"
+                                : connectionStatus === "connecting"
+                                ? "bg-yellow-400 animate-pulse"
+                                : "bg-white/50"
+                            }`}
+                          />
+                          <span className="text-xs text-white/90">
+                            {connectionStatus === "connected" ? "Connected" : 
+                             connectionStatus === "connecting" ? "Connecting..." : "Ready"}
+                          </span>
+                          {isPlayingAudio && (
+                            <div className="flex items-center gap-1">
+                              <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                              <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "0.2s" }}></div>
+                              <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "0.4s" }}></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={toggleAudio}
+                        className={`p-1 rounded transition-colors ${
+                          isAudioEnabled
+                            ? "text-white hover:bg-white/20"
+                            : "text-white/50 hover:bg-white/20"
+                        }`}
+                      >
+                        {isAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                      </button>
+
+                      {isPlayingAudio && (
+                        <button
+                          onClick={stopCurrentAudio}
+                          className="p-1 text-white hover:bg-white/20 rounded transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="p-1 text-white hover:bg-white/20 rounded transition-colors"
+                      >
+                        <ChevronDown size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Container */}
+                <div className="flex flex-col h-[calc(100%-76px)]">
+                  {/* Response Area - Scrollable */}
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Response */}
+                    <AnimatePresence>
+                      {aiResponse && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="p-3 bg-orange-50 border-b"
+                        >
+                          <p className="text-sm text-orange-900 whitespace-pre-wrap">{aiResponse}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Error */}
+                    <AnimatePresence>
+                      {error && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="p-3 bg-red-50 border-b"
+                        >
+                          <p className="text-sm text-red-600">{error}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Image Preview */}
+                    <AnimatePresence>
+                      {imagePreview && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="p-3 border-b"
+                        >
+                          <div className="relative inline-block">
+                            <Image
+                              width={80}
+                              height={80}
+                              src={imagePreview}
+                              alt="Preview"
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                            <button
+                              onClick={removeImage}
+                              className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                              disabled={isLoading}
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Input Form - Fixed at bottom */}
+                  <form onSubmit={handleSubmit} className="p-3 bg-white border-t">
+                    <textarea
+                      ref={inputRef}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Contoh:
+• Cari tempat makan enak
+• Tampilkan detail [nama UMKM]"
+                      className="w-full p-3 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent mb-2"
+                      rows={2}
+                      disabled={isLoading}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
+                    />
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                          disabled={isLoading}
+                        >
+                          <ImageIcon size={18} />
+                        </button>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading || !query.trim()}
+                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-lg hover:from-orange-600 hover:to-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send size={16} />
+                            <span>Send</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  // Desktop Layout (Original)
   return (
     <>
-      {/* ✅ Chatbot Button - Always visible with scale animation */}
+      {/* Desktop Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
         className={`${
@@ -478,7 +729,7 @@ export default function AIChatbot({ map, umkmMarkers }: AIChatbotProps) {
         )}
       </motion.button>
 
-      {/* ✅ Chat Panel with Fade Animation */}
+      {/* Desktop Chat Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div

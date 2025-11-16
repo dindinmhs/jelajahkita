@@ -17,7 +17,7 @@
 
 ## 📖 Tentang Aplikasi
 
-**JelajahKita** adalah platform web interaktif yang membantu masyarakat menemukan dan mengeksplorasi Usaha Mikro Kecil dan Menengah (UMKM) di sekitar mereka. Dengan teknologi peta interaktif dan AI Assistant, JelajahKita mempermudah pencarian UMKM lokal berdasarkan lokasi, kategori, dan preferensi pengguna.
+**JelajahKita** adalah website yang memudahkan pengguna menemukan dan mengeksplorasi UMKM lokal di Indonesia. Dilengkapi peta interaktif, AI Assistant multimodal, sistem navigasi, chat dengan pemilik UMKM, dan fitur manajemen bisnis, JelajahKita mendukung pertumbuhan ekonomi lokal serta membantu masyarakat menemukan produk dan layanan UMKM terdekat dengan mudah.
 
 ### 🎯 Tujuan
 
@@ -33,9 +33,8 @@
 ### 🗺️ **Interactive Map**
 - Peta interaktif berbasis MapLibre GL dengan multiple viewing modes (Default, 3D, Satellite)
 - Real-time location tracking dengan marker user
-- Clustering untuk visualisasi UMKM yang lebih baik
 - Filter berdasarkan kategori (Kuliner, Fashion, Kerajinan, Jasa, dll)
-- Search & filter UMKM dengan autocomplete
+- Search & filter UMKM 
 
 ### 🤖 **AI Assistant**
 - AI Chatbot dengan kemampuan multimodal (text + image search)
@@ -77,8 +76,6 @@
 - Smooth animations dengan Framer Motion
 - Bottom sheet style untuk mobile
 - Draggable chat popup untuk desktop
-- Dark mode ready components
-- Loading states dan skeleton loaders
 
 ---
 
@@ -171,5 +168,6 @@ Aplikasi menggunakan Supabase Authentication dengan fitur:
 ## 👨‍💻 Developer
 
 Developed with ❤️ by **Ayam Pelung Cikutra**
+Dindin - Tedy - Riza
 
 - GitHub: [@dindinmhs](https://github.com/dindinmhs)

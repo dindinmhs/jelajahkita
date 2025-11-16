@@ -18,9 +18,10 @@ interface Message {
 export default function ChatPopup() {
   const [message, setMessage] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Draggable state
+  // Draggable state (desktop only)
   const [position, setPosition] = useState({ x: 0, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -41,27 +42,29 @@ export default function ChatPopup() {
     setLoadingMessages,
   } = useChatStore();
 
+  // Check if mobile
   useEffect(() => {
     setIsMounted(true);
-    // Set initial position
-    if (typeof window !== "undefined") {
-      setPosition({ x: window.innerWidth - 420, y: 100 });
-    }
+    
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      // Set initial position for desktop
+      if (!mobile && typeof window !== "undefined") {
+        setPosition({ x: window.innerWidth - 420, y: 100 });
+      }
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Debug log
-  useEffect(() => {
-    console.log("Chat Popup State:", {
-      isChatOpen,
-      isListView,
-      currentChatUmkmId,
-      currentChatUmkmName,
-      isMounted,
-    });
-  }, [isChatOpen, isListView, currentChatUmkmId, currentChatUmkmName, isMounted]);
-
-  // Draggable handlers
+  // Draggable handlers (desktop only)
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return; // Disable drag on mobile
+    
     if ((e.target as HTMLElement).closest(".drag-handle")) {
       setIsDragging(true);
       setDragOffset({
@@ -72,6 +75,8 @@ export default function ChatPopup() {
   };
 
   useEffect(() => {
+    if (isMobile) return; // Skip drag logic on mobile
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
 
@@ -108,7 +113,7 @@ export default function ChatPopup() {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, isMobile]);
 
   // Fetch messages when chat view opens
   useEffect(() => {
@@ -146,6 +151,19 @@ export default function ChatPopup() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Prevent body scroll when chat is open on mobile
+  useEffect(() => {
+    if (isMobile && isChatOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile, isChatOpen]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !user || !currentChatUmkmId) return;
@@ -195,32 +213,47 @@ export default function ChatPopup() {
   };
 
   if (!isChatOpen || !isMounted) {
-    console.log("Chat popup not rendering:", { isChatOpen, isMounted });
     return null;
   }
 
-  console.log("Chat popup rendering!");
+  // Mobile styles
+  const mobileStyles = isMobile ? {
+    position: "fixed" as const,
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    borderRadius: 0,
+    left: 0,
+    top: 0,
+    zIndex: 99999,
+  } : {
+    position: "fixed" as const,
+    width: "400px",
+    height: "600px",
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    zIndex: 99999,
+  };
 
   return (
     <>
       <div
         ref={popupRef}
-        className="fixed bg-white rounded-2xl shadow-2xl border border-gray-200 transition-opacity duration-200"
+        className="bg-white shadow-2xl border border-gray-200 transition-opacity duration-200"
         style={{
-          width: "400px",
-          height: "600px",
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          zIndex: 99999,
+          ...mobileStyles,
+          borderRadius: isMobile ? 0 : "1rem",
           opacity: isChatOpen ? 1 : 0,
           transform: isChatOpen ? "scale(1)" : "scale(0.95)",
           transition: isDragging ? "none" : "opacity 0.2s, transform 0.2s",
         }}
         onMouseDown={handleMouseDown}
       >
-        {/* Header - Draggable Area */}
+        {/* Header */}
         <div 
-          className="drag-handle bg-gradient-to-r from-[#FF6B35] to-[#ff8c42] p-4 rounded-t-2xl flex items-center justify-between cursor-grab active:cursor-grabbing select-none"
+          className={`drag-handle bg-gradient-to-r from-[#FF6B35] to-[#ff8c42] p-4 flex items-center justify-between ${
+            isMobile ? "" : "rounded-t-2xl cursor-grab active:cursor-grabbing"
+          } select-none`}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0 pointer-events-none">
             {!isListView && (
@@ -257,7 +290,7 @@ export default function ChatPopup() {
           </button>
         </div>
 
-        {/* Content - Non-draggable */}
+        {/* Content */}
         <div className="h-[calc(100%-76px)] overflow-hidden">
           {isListView ? (
             <ChatList />
@@ -328,7 +361,9 @@ export default function ChatPopup() {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
+              <div className={`p-4 bg-white border-t border-gray-200 ${
+                isMobile ? "" : "rounded-b-2xl"
+              }`}>
                 <div className="flex gap-2">
                   <input
                     type="text"

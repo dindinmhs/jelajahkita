@@ -91,7 +91,7 @@ export function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#5a6c7d] text-sm">
-              &copy; 2024 Jelajahkita. Hak cipta dilindungi.
+              &copy; 2025 Jelajahkita. Hak cipta dilindungi.
             </p>
 
             {/* Social Media Icons */}
