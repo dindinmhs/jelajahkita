@@ -5,8 +5,10 @@ interface Message {
   message: string;
   sender_type: "user" | "umkm";
   created_at: string;
-  user_id: string;
-  umkm_id: string;
+  user_id?: string; // Make optional
+  umkm_id?: string; // Make optional
+  user_fullname?: string;
+  umkm_name?: string;
 }
 
 interface ChatRoom {
@@ -70,7 +72,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   
   toggleChatView: () => set((state) => ({ 
     isChatOpen: !state.isChatOpen,
-    isListView: true // Reset ke list view saat toggle
+    isListView: true
   })),
   
   showListView: () =>
