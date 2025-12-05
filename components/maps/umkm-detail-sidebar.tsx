@@ -236,7 +236,7 @@ export default function UmkmDetailSidebar() {
 
   return (
     <>
-      <div className="absolute inset-0 left-0 top-0 w-96 bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div className="absolute left-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-50 flex flex-col">
         {/* Header with Back Button - Fixed */}
         <div className="p-4 border-b border-gray-200 flex items-center gap-3 bg-gradient-to-r from-[#FF6B35] to-[#ff8c42] flex-shrink-0">
           <button
@@ -275,6 +275,7 @@ export default function UmkmDetailSidebar() {
         {/* Content - Scrollable */}
         <div
           className="flex-1 overflow-y-auto overflow-x-hidden"
+          onWheel={(e) => e.stopPropagation()}
           style={{
             scrollbarWidth: "thin",
             scrollbarColor: "#d1d5db transparent",

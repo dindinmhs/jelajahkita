@@ -92,7 +92,7 @@ export default function NearbySidebar() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -320, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute top-24 left-4 bottom-4 w-80 z-40 flex flex-col overflow-hidden"
+            className="absolute top-24 left-4 bottom-4 w-80 z-40 flex flex-col"
           >
             {/* Header Card */}
             <motion.div
@@ -106,7 +106,9 @@ export default function NearbySidebar() {
                   <MapPin className="text-white" size={20} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Usaha Terdekat</h2>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Usaha Terdekat
+                  </h2>
                   {filteredUmkm.length > 0 && (
                     <p className="text-xs text-gray-500">
                       {filteredUmkm.length} UMKM ditemukan
@@ -123,11 +125,16 @@ export default function NearbySidebar() {
               transition={{ delay: 0.15 }}
               className="flex-1 rounded-2xl overflow-hidden flex flex-col"
             >
-              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              <div
+                className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+                onWheel={(e) => e.stopPropagation()}
+              >
                 {isLoadingNearby ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="w-12 h-12 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-gray-600 text-sm">Mencari UMKM terdekat...</p>
+                    <p className="text-gray-600 text-sm">
+                      Mencari UMKM terdekat...
+                    </p>
                   </div>
                 ) : !userLocation ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -183,10 +190,15 @@ export default function NearbySidebar() {
                             </h3>
                             <div className="flex items-center gap-1 mt-1">
                               {getCategoryIcon(umkm.category, 12)}
-                              <p className="text-xs text-gray-500">{umkm.category}</p>
+                              <p className="text-xs text-gray-500">
+                                {umkm.category}
+                              </p>
                             </div>
                             <div className="flex items-center gap-1 mt-2 bg-orange-50 rounded-full px-2 py-1 w-fit">
-                              <Navigation2 className="text-[#FF6B35]" size={12} />
+                              <Navigation2
+                                className="text-[#FF6B35]"
+                                size={12}
+                              />
                               <span className="text-xs font-semibold text-[#FF6B35]">
                                 {(umkm.distance_km ?? 0).toFixed(2)} km
                               </span>
